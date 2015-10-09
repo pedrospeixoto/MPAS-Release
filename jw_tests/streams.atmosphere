@@ -1,0 +1,43 @@
+<streams>
+
+<immutable_stream name="input"
+                  type="input"
+                  filename_template="HR95HK_007_hcm.init.jw1.nc"
+                  input_interval="initial_only"/>
+
+<immutable_stream name="restart"
+                  type="input;output"
+                  filename_template="restart.$Y-$M-$D_$h.$m.$s.nc"
+                  input_interval="initial_only"
+                  output_interval="1_00:00:00"/>
+
+<stream name="output"
+        type="output"
+        filename_template="output.nc"
+        filename_interval="none"
+        output_interval="24:00:00"
+        clobber_mode="replace_files"
+        precision="single" >
+        
+    <file name="stream_list.atmosphere.output"/>
+</stream>
+
+<stream name="diagnostics"
+        type="output"
+        filename_template="diag.$Y-$M-$D_$h.$m.$s.nc"
+        output_interval="12:00:00"
+        clobber_mode="replace_files"
+        precision="single" >
+
+	<file name="stream_list.atmosphere.diagnostics"/>
+</stream>
+
+<stream name="surface"
+        type="input"
+        filename_template="sfc_update.nc"
+        filename_interval="none"
+        input_interval="none">
+
+</stream>
+
+</streams>
