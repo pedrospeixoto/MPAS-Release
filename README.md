@@ -1,4 +1,4 @@
-MPAS-v4.0
+MPAS-v4.0 - with Peixoto 2015 modifications
 ====
 
 The Model for Prediction Across Scales (MPAS) is a collaborative project for
@@ -15,6 +15,8 @@ by providing infrastructure typically required by model developers, including
 high-level data types, communication routines, and I/O routines. By using MPAS,
 developers can leverage pre-existing code and focus more on development of
 their model.
+
+This branch deals with the modifications discussed in Peixoto (2015) JCP paper
 
 BUILDING
 ========
