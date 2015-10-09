@@ -1,5 +1,5 @@
 GRID_GEN README
-Last modified 18 Feb 2015
+Last modified 8 Oct 2015 - Peixoto
 --------------------------------------------------------------------------------
 
 The grid_gen utility converts a set of generating points into a complete MPAS
@@ -32,7 +32,9 @@ Input files:
                   generating points needed to achieve the specified minimum dx 
                   (in meters) based on the density function defined in 
                   src/module_scvt.F::density_for_point()
-
+           filenames for input and output (added by Peixoto)
+       
+	
      locs.dat - a list of generating points, either given as (lat,lon) 
            coordinates or as (x,y,z) coordinates; the coorinates used in the 
            file should be indicated to grid_gen using the locs_as_xyz logical 
