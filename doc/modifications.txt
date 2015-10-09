@@ -1,0 +1,12 @@
+Modification made by P.Peixoto in MPAS4.0
+
+1) Created a program to convert HCt grids (current MPAS kind of grid) to HCm grids by changing the position of the edge midpoints
+ - This overwrites the edge midpoint position (x,y,zEdge, lat,lonEdge) and recalculates the angleEdge and fEdge
+ - Add a global attribute to nc file called :Staggering = "HCm" ;
+ 
+2) Changes the grid generator 
+  - Added some functionalities to the namelist.input to read a namelist called "files" which makes it possible to input the filenames to be read and written
+  - Running it with 0 scvt iterations and reading from an .xyz file the generator is used to convert HR95 grid to MPAS format
+  
+ 
+
