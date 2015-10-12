@@ -1,4 +1,4 @@
-MPAS-v4.0 - with Peixoto 2015 modifications
+MPAS-v4.0 +  Peixoto (2015) modifications
 ====
 
 The Model for Prediction Across Scales (MPAS) is a collaborative project for
