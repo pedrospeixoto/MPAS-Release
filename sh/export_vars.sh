@@ -47,8 +47,11 @@ export PATH=${BASEDIR}/bin:$PATH
 # METIS
 export PATH=${BASEDIR}/metis-5.1.0/build/Linux-x86_64/programs:$PATH
 
+#NCAR GRAPHICS NCL
+export PATH=${BASEDIR}/ncl_ncarg-6.3.0.Linux_RHEL6.4_x86_64_nodap_gcc472/bin:$PATH
 
 
+export NCARG_ROOT=/scratch/pd300/MPASprogs/ncl_ncarg-6.3.0.Linux_RHEL6.4_x86_64_nodap_gcc472
 
 
 
