@@ -139,7 +139,7 @@ module mpas_barycentric_interpolation
 		bary_coord=bar_coord(p, p1, p2, p3)
 	    print*, iVertex, bary_coord
     end do
-
+  !test
 
   end subroutine mpas_init_barycentric_coefs!}}}
 
