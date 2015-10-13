@@ -1,7 +1,7 @@
 &nhyd_model
     config_dt = 240.0
     config_start_time = '0000-01-01_00:00:00'
-    config_run_duration = '00:08:00'
+    config_run_duration = '00:30:00'
     config_split_dynamics_transport = false
     config_number_of_sub_steps = 6
     config_dynamics_split_steps = 1
