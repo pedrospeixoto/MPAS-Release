@@ -58,6 +58,7 @@ module mpas_barycentric_interpolation
     real (kind=RKIND), dimension(:), pointer :: xEdge, yEdge, zEdge
     real (kind=RKIND), dimension(:), pointer :: xVertex, yVertex, zVertex
     integer, dimension(:,:), pointer :: cellsOnEdge, cellsOnVertex, verticesOnEdge, edgesOnCell, edgesOnEdge, edgesOnVertex
+    integer, dimension(:), pointer :: indexToEdgeID
     real (kind=RKIND) :: xTrEdgeMidpoint, yTrEdgeMidpoint, zTrEdgeMidpoint, ptNorm, distTrEdgeMidToVertex1, distTrEdgeMidToVertex2
 	logical, pointer :: on_a_sphere
 	real (kind=RKIND), pointer :: sphere_radius
@@ -84,13 +85,18 @@ module mpas_barycentric_interpolation
 	call mpas_pool_get_array(mesh, 'dvEdge', dvEdge)
     call mpas_pool_get_config(mesh, 'on_a_sphere', on_a_sphere)
     call mpas_pool_get_config(mesh, 'sphere_radius', sphere_radius)
+	call mpas_pool_get_array(mesh, 'indexToEdgeID', indexToEdgeID)
 
+    !do iEdge = 1, nEdges
+	!	print*, iEdge, indexToEdgeID(iEdge), verticesOnEdge(:, iEdge)
+	!end do
    do iEdge = 1, nEdges
        iCell1 = cellsOnEdge(1,iEdge)
        iCell2 = cellsOnEdge(2,iEdge)
        iVertex1 = verticesOnEdge(1,iEdge)
        iVertex2 = verticesOnEdge(2,iEdge)
 		!print*, iEdge, iCell1, iCell2, iVertex1, iVertex2
+
 		!Calculate midpoint of the triangle edge (the one that intersects the Voronoi cell edges
 		! There is no need to divide by 2 (average) because it is going to be nromalized anyway
 		xTrEdgeMidpoint=xCell(iCell1)+xCell(iCell2)
@@ -133,7 +139,10 @@ module mpas_barycentric_interpolation
 		p3(2)=yCell(cellsOnVertex(3,iVertex))
 		p3(3)=zCell(cellsOnVertex(3,iVertex))
 		bary_coord=bar_coord(p, p1, p2, p3)
-	    print*, iVertex, bary_coord
+	    print*, iEdge, indexToEdgeID(iEdge), iVertex
+	    print*, cellsOnVertex(:,iVertex)
+	    print*, bary_coord(:)
+	    print*
     end do
 
   end subroutine mpas_init_barycentric_coefs!}}}

@@ -28,8 +28,10 @@ begin
   latVertex = f->latVertex(:) * r2d
   lonEdge = f->lonEdge(:) * r2d
   latEdge = f->latEdge(:) * r2d
-  
-
+  indCell = f->indexToCellID(:)
+  indVert = f->indexToVertexID(:) 
+  indEdge = f->indexToEdgeID(:)
+   
   res                      = True
   res@gsnMaximize          = True
 
@@ -47,6 +49,7 @@ begin
   res@mpInlandWaterFillColor  = 0 ;3
   res@mpLandFillColor  = 0 ;4
   res@mpGeophysicalLineThicknessF = 0.10
+  res@mpGreatCircleLinesOn   =  True
   
   map = gsn_csm_map(wks,res)
 
@@ -119,12 +122,24 @@ begin
   ;--------------------------
    polyres                   = True
    polyres@gsMarkerIndex     = 1          ; polymarker style
-   polyres@gsMarkerSizeF     = 0.002          ; polymarker size
+   polyres@gsMarkerSizeF     = 0.015          ; polymarker size
    polyres@gsMarkerColor  = colors(6)     ; marker color
 
   gsn_polymarker(wks,map,lonEdge,latEdge, polyres) 
 
+  txres               = True
+  txres@txFontHeightF = 0.007
+  txres@txFont        = "helvetica-bold"
+  txres@txAngleF   = 90
+  gsn_text(wks,map,sprintf("%6.4g",indVert),lonVertex,latVertex,txres)
 
+  txres@txFont        = "helvetica"
+  gsn_text(wks,map,sprintf("%6.4g",indCell),lonCell,latCell,txres)
+  
+  txres@txFont        = "helvetica"
+  txres@txJust = "TopLeft"
+  gsn_text(wks,map,sprintf("%6.4g",indEdge),lonEdge,latEdge,txres)
+  
   ;--------------------------
   ; Edge midpoints of HCm grid
   ;--------------------------
@@ -135,8 +150,8 @@ begin
   latEdge2 = f2->latEdge(:) * r2d
 
    polyres2                   = True
-   polyres2@gsMarkerIndex     = 1          ; polymarker style
-   polyres2@gsMarkerSizeF     = 0.002          ; polymarker size
+   polyres2@gsMarkerIndex     = 2          ; polymarker style
+   polyres2@gsMarkerSizeF     = 0.004          ; polymarker size
    polyres2@gsMarkerColor  = colors(7)     ; marker color
 
   gsn_polymarker(wks,map,lonEdge2,latEdge2, polyres2)
