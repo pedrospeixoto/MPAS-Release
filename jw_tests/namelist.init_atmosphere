@@ -4,9 +4,9 @@
 /
 
 &dimensions
-   config_nvertlevels = 30
+   config_nvertlevels = 20
 /
 
 &decomposition
-   config_block_decomp_file_prefix = '../grids/x1.163842/HR95HK_007.graph.info.part.' 
+   config_block_decomp_file_prefix = '../grids/x1.2562/x1.2562.graph.info.part.' 
 /

@@ -2,7 +2,7 @@
 
 <immutable_stream name="input"
                   type="input"
-                  filename_template="HR95HK_007_hcm.init.jw1.nc"
+                  filename_template="x1.2562.init.jw1.nc"
                   input_interval="initial_only"/>
 
 <immutable_stream name="restart"
@@ -15,7 +15,7 @@
         type="output"
         filename_template="output.nc"
         filename_interval="none"
-        output_interval="24:00:00"
+        output_interval="00:08:00"
         clobber_mode="replace_files"
         precision="single" >
         
@@ -25,7 +25,7 @@
 <stream name="diagnostics"
         type="output"
         filename_template="diag.$Y-$M-$D_$h.$m.$s.nc"
-        output_interval="12:00:00"
+        output_interval="00:08:00"
         clobber_mode="replace_files"
         precision="single" >
 

@@ -5,6 +5,7 @@
 ! Additional copyright and license information can be found in the LICENSE file
 ! distributed with this code, or at http://mpas-dev.github.com/license.html
 !
+! Peixoto Modified in Oct 2015
 module atm_core
 
    use mpas_derived_types
@@ -780,6 +781,7 @@ module atm_core
       cpr(:,:) = 0.0
       cpl(:,:) = 0.0
 
+	  !PXT - what is this new method?
       if (config_newpx) then
          do iEdge=1,nEdges
 
@@ -852,7 +854,7 @@ module atm_core
 
 
    subroutine atm_adv_coef_compression( mesh )
-
+	!PXT - what is this doing?
       implicit none
 
       type (mpas_pool_type), intent(inout) :: mesh

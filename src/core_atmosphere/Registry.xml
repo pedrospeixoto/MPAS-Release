@@ -327,7 +327,7 @@
 			<var name="rtheta_p"/>
 			<var name="rho_p"/>
 			<var name="surface_pressure"/>
-                        <var name="tend_sfc_pressure"/>
+            <var name="tend_sfc_pressure"/>
 			<var name="rt_diabatic_tend"/>
 			<var name="dcEdge_m"/>
 			<var name="nsteps_accum"/>

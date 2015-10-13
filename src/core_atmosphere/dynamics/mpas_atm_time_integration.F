@@ -2702,7 +2702,7 @@ module atm_time_integration
       h_divergence(:,:) = 0.
 
       ! accumulate horizontal mass-flux
-
+	  !PXT - divergence uses ru, which needs fixing
       do iEdge=1,nEdges
          cell1 = cellsOnEdge(1,iEdge)
          cell2 = cellsOnEdge(2,iEdge)
@@ -3765,6 +3765,7 @@ module atm_time_integration
          cell2 = cellsOnEdge(2,iEdge)
          do k=1,nVertLevels
             h_edge(k,iEdge) = 0.5 * (h(k,cell1) + h(k,cell2))
+            !PXT - need to add barycentric interpolation here as well
          end do
       end do
 
@@ -3772,6 +3773,7 @@ module atm_time_integration
       !
       ! Compute circulation and relative vorticity at each vertex
       !
+      !PXT - vorticity ok
       circulation(:,:) = 0.0
       do iEdge=1,nEdges
          do k=1,nVertLevels
@@ -3790,6 +3792,7 @@ module atm_time_integration
       !
       ! Compute the divergence at each cell center
       !
+      !PXT divergence ok
       divergence(:,:) = 0.0
       do iEdge=1,nEdges
          cell1 = cellsOnEdge(1,iEdge)
@@ -3813,10 +3816,14 @@ module atm_time_integration
       ke(:,:) = 0.0
       ! Replace 2.0 with 2 in exponentiation to avoid outside chance that
       ! compiler will actually allow "float raised to float" operation
+      !PXT - modify KE
       do iCell=1,nCells
          do i=1,nEdgesOnCell(iCell)
             iEdge = edgesOnCell(i,iCell)
             do k=1,nVertLevels
+            	!PXT Reconstruct velocity and then use this to calculate the KE
+            	!Will need the normals, or can be done in the same style as the divergence is calculated
+            	! add function like atm_vector_recon_perot or do on the fly?
                ke(k,iCell) = ke(k,iCell) + 0.25 * dcEdge(iEdge) * dvEdge(iEdge) * u(k,iEdge)**2
             end do
          end do
@@ -3830,6 +3837,7 @@ module atm_time_integration
          ! Compute ke at cell vertices - AG's new KE construction, part 1
          ! *** approximation here because we don't have inner triangle areas
          !
+         !PXT- Need to change this as well, in a vector reconstruction style
 
          allocate (ke_vertex(nVertLevels,nVertices))
          ! Precalculate inverse area triangle to avoid repeated divisions
@@ -3876,6 +3884,8 @@ module atm_time_integration
       !
       ! Compute v (tangential) velocities following Thuburn et al JCP 2009
       !
+      !PXT- Use perot style reconstruction
+      !    will need extra variables for this - allocate on the fly?
       v(:,:) = 0.0
       do iEdge = 1,nEdges
          do i=1,nEdgesOnEdge(iEdge)
@@ -3897,6 +3907,8 @@ module atm_time_integration
          do k=1,nVertLevels
             h_vertex = 0.0
             do i=1,vertexDegree
+               !PXT - do linear interpolation here, with barycentric coords
+               ! Maybe I could use the kiteAreasOnVertex to store the weights (or use it as a template)
                h_vertex = h_vertex + h(k,cellsOnVertex(i,iVertex)) * kiteAreasOnVertex(i,iVertex)
             end do
             pv_vertex(k,iVertex) = (fVertex(iVertex) + vorticity(k,iVertex)) * areaTriangle(iVertex) / h_vertex
@@ -3908,6 +3920,7 @@ module atm_time_integration
       ! Compute pv at the edges
       !   ( this computes pv_edge at all edges bounding real cells )
       !
+      !PXT - this part is ok, since now we are using the midpoints of the edge
       pv_edge(:,:) = 0.0
       do iVertex = 1,nVertices
          do i=1,vertexDegree
@@ -3922,6 +3935,7 @@ module atm_time_integration
       ! Compute pv at cell centers
       !    ( this computes pv_cell for all real cells )
       !
+      !PXT - use barycentric interpolation
       pv_cell(:,:) = 0.0
       do iVertex = 1, nVertices
          do i=1,vertexDegree
@@ -3949,6 +3963,7 @@ module atm_time_integration
          ! Merged loops for calculating gradPVt, gradPVn and pv_edge
          ! Also precomputed inverses of dvEdge and dcEdge to avoid repeated divisions
          !
+         !PXT - need to check the best way to this
          do iEdge = 1,nEdges
             r1 = 1.0_RKIND / dvEdge(iEdge)
             r2 = 1.0_RKIND / dcEdge(iEdge)
@@ -4051,11 +4066,19 @@ module atm_time_integration
          end do
       end do
 
+	  !Flux calculation
       do iEdge = 1, nEdges
          iCell1 = cellsOnEdge(1,iEdge)
          iCell2 = cellsOnEdge(2,iEdge)
          do k=1,nVertLevels
             ru(k,iEdge) = 0.5 * u(k,iEdge) * (rho_zz(k,iCell1) + rho_zz(k,iCell2))
+            !write(0,*), iEdge, k, ru(k, iEdge)
+            !PXT - change this to linear interpolation
+            ! ru(k,iEdge)=u(k,iEdge)*atm_linear_interp_edge(iEdge, rho_zz)
+            !     atm_linear_interp_edge calculates the barycentric coefficients
+            !     using the orthogonality this should be straighforward
+            !     but somethings would be more efficient if pre computed
+            ! Needs: area calculations and test if point lives in triangle
          end do
       end do
 
@@ -4073,6 +4096,7 @@ module atm_time_integration
       end do
   
       ! next, the piece that depends on ru
+      !PXT - Should be ok on changes, since flux is already corrected
       do iEdge=1,nEdges
          cell1 = cellsOnEdge(1,iEdge)
          cell2 = cellsOnEdge(2,iEdge)
