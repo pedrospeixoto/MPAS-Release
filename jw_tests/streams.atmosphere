@@ -2,7 +2,7 @@
 
 <immutable_stream name="input"
                   type="input"
-                  filename_template="x1.2562.init.jw1.nc"
+                  filename_template="icos_pol_nopt_2.init.jw1.nc"
                   input_interval="initial_only"/>
 
 <immutable_stream name="restart"
@@ -15,7 +15,7 @@
         type="output"
         filename_template="output.nc"
         filename_interval="none"
-        output_interval="00:08:00"
+        output_interval="00:01:00"
         clobber_mode="replace_files"
         precision="single" >
         

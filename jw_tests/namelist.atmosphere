@@ -1,7 +1,7 @@
 &nhyd_model
-    config_dt = 240.0
+    config_dt = 60.0
     config_start_time = '0000-01-01_00:00:00'
-    config_run_duration = '00:30:00'
+    config_run_duration = '00:01:00'
     config_split_dynamics_transport = false
     config_number_of_sub_steps = 6
     config_dynamics_split_steps = 1
@@ -33,7 +33,7 @@
 /
 
 &decomposition
-   config_block_decomp_file_prefix = '../grids/x1.2562/x1.2562.graph.info.part.' 
+   config_block_decomp_file_prefix = '../grids/x1.162/icos_pol_nopt_2.graph.info.part.' 
 /
 
 &restart

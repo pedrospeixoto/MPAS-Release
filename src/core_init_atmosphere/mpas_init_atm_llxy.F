@@ -1228,11 +1228,11 @@ MODULE init_atm_llxy
          
          ! Longitude
          lon = proj%stdlon + deg_per_rad * ATAN2(proj%hemi*xx,yy)/proj%cone
-# if ( defined (G95) && ( DA_CORE == 1 ) )
+#if ( defined (G95) && ( DA_CORE == 1 ) )
          lon = DMOD(lon+360., 360.0_RKIND)
-# else
+#else
          lon = MOD(lon+360., 360.0_RKIND)
-# endif
+#endif
    
          ! Latitude.  Latitude determined by solving an equation adapted 
          ! from:

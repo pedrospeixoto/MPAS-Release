@@ -4,9 +4,9 @@
 /
 
 &dimensions
-   config_nvertlevels = 20
+   config_nvertlevels = 10
 /
 
 &decomposition
-   config_block_decomp_file_prefix = '../grids/x1.2562/x1.2562.graph.info.part.' 
+   config_block_decomp_file_prefix = '../grids/x1.162/icos_pol_nopt_2.graph.info.part.' 
 /

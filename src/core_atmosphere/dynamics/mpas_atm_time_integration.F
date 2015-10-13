@@ -16,6 +16,7 @@ module atm_time_integration
    ! Added only clause to keep xlf90 from getting confused from the overloaded abs intrinsic in mpas_timekeeping
    use mpas_timekeeping, only: MPAS_Time_type, MPAS_TimeInterval_type, &
                                mpas_set_time, mpas_set_timeInterval, mpas_get_time, operator(+), add_t_ti
+   use mpas_barycentric_interpolation
 
 #ifdef DO_PHYSICS
    use mpas_atmphys_driver_microphysics
@@ -4066,12 +4067,15 @@ module atm_time_integration
          end do
       end do
 
+      call mpas_init_barycentric_coefs(mesh)
+
 	  !Flux calculation
       do iEdge = 1, nEdges
          iCell1 = cellsOnEdge(1,iEdge)
          iCell2 = cellsOnEdge(2,iEdge)
          do k=1,nVertLevels
             ru(k,iEdge) = 0.5 * u(k,iEdge) * (rho_zz(k,iCell1) + rho_zz(k,iCell2))
+            !print*, iEdge, iCell1, iCell2, rho_zz(k,iCell1), rho_zz(k,iCell2)
             !write(0,*), iEdge, k, ru(k, iEdge)
             !PXT - change this to linear interpolation
             ! ru(k,iEdge)=u(k,iEdge)*atm_linear_interp_edge(iEdge, rho_zz)

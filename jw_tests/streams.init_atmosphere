@@ -1,12 +1,12 @@
 <streams>
 <immutable_stream name="input"
                   type="input"
-                  filename_template="../grids/x1.2562/x1.2562.grid.nc"
+                  filename_template="../grids/x1.162/icos_pol_nopt_2_grid.nc"
                   input_interval="initial_only" />
 
 <immutable_stream name="output"
                   type="output"
-                  filename_template="x1.2562.init.jw1.nc"
+                  filename_template="icos_pol_nopt_2.init.jw1.nc"
                   packages="initial_conds"
                   output_interval="initial_only"
                   clobber_mode="replace_files"

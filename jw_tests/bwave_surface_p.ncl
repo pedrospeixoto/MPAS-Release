@@ -81,7 +81,7 @@ begin
   res@gsnContourNegLineDashPattern = 1
   ;res@cnLineDashPattern = 0
 
-  nTime = 17
+  nTime = 1
   do iTime =0, nTime-1
   DAY = iTime
 
