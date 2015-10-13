@@ -26,27 +26,23 @@ module mpas_barycentric_interpolation
 
   implicit none
 
-  !public :: mpas_init_reconstruct, mpas_reconstruct
+  public :: mpas_init_barycentric_coefs
 
-  !interface mpas_reconstruct
-  !   module procedure mpas_reconstruct_1d
-  !   module procedure mpas_reconstruct_2d
-  !end interface
 
   contains
 
 !***********************************************************************
 !
-!  routine mpas_init_reconstruct
+!  routine mpas_init_barycentric_coefs
 !
-!> \brief   MPAS Vector reconstruction initialization routine
-!> \author  Xylar Asay-Davis, Todd Ringler
-!> \date    03/28/13
+!> \brief   MPAS Calculate barycentric coordinate coefficients for
+!>           scalar interpolation to edge midpoints
+!> \author  Pedro Peixoto
+!> \date    Oct 2015
 !> \details
-!>  Purpose: pre-compute coefficients used by the reconstruct() routine
+!>  Purpose: pre-compute coefficients for linear interpolation
 !>  Input: grid meta data
-!>  Output: grid % coeffs_reconstruct - coefficients used to reconstruct
-!>                                      velocity vectors at cell centers
+!>  Output: grid % coeffs_bary_interp - coefficients
 !-----------------------------------------------------------------------
   subroutine mpas_init_barycentric_coefs(mesh)!{{{
 
@@ -87,14 +83,14 @@ module mpas_barycentric_interpolation
 	call mpas_pool_get_array(mesh, 'dcEdge', dcEdge)
 	call mpas_pool_get_array(mesh, 'dvEdge', dvEdge)
     call mpas_pool_get_config(mesh, 'on_a_sphere', on_a_sphere)
-     call mpas_pool_get_config(mesh, 'sphere_radius', sphere_radius)
+    call mpas_pool_get_config(mesh, 'sphere_radius', sphere_radius)
 
    do iEdge = 1, nEdges
        iCell1 = cellsOnEdge(1,iEdge)
        iCell2 = cellsOnEdge(2,iEdge)
        iVertex1 = verticesOnEdge(1,iEdge)
        iVertex2 = verticesOnEdge(2,iEdge)
-		print*, iEdge, iCell1, iCell2, iVertex1, iVertex2
+		!print*, iEdge, iCell1, iCell2, iVertex1, iVertex2
 		!Calculate midpoint of the triangle edge (the one that intersects the Voronoi cell edges
 		! There is no need to divide by 2 (average) because it is going to be nromalized anyway
 		xTrEdgeMidpoint=xCell(iCell1)+xCell(iCell2)
@@ -102,17 +98,17 @@ module mpas_barycentric_interpolation
 		zTrEdgeMidpoint=zCell(iCell1)+zCell(iCell2)
 	    ptNorm= xTrEdgeMidpoint**2+yTrEdgeMidpoint**2+ zTrEdgeMidpoint**2
 		ptNorm=sqrt(ptNorm)
-		 xTrEdgeMidpoint=sphere_radius*xTrEdgeMidpoint/ptNorm
-		 yTrEdgeMidpoint=sphere_radius*yTrEdgeMidpoint/ptNorm
-		 zTrEdgeMidpoint=sphere_radius*zTrEdgeMidpoint/ptNorm
-		print*, xTrEdgeMidpoint, yTrEdgeMidpoint, zTrEdgeMidpoint
-		print*, xEdge(iEdge), yEdge(iEdge), zEdge(iEdge)
+		xTrEdgeMidpoint=sphere_radius*xTrEdgeMidpoint/ptNorm
+		yTrEdgeMidpoint=sphere_radius*yTrEdgeMidpoint/ptNorm
+		zTrEdgeMidpoint=sphere_radius*zTrEdgeMidpoint/ptNorm
+		!print*, xTrEdgeMidpoint, yTrEdgeMidpoint, zTrEdgeMidpoint
+		!print*, xEdge(iEdge), yEdge(iEdge), zEdge(iEdge)
 		distTrEdgeMidToVertex1=arc_length(xTrEdgeMidpoint, yTrEdgeMidpoint, zTrEdgeMidpoint, &
 			xVertex(iVertex1),yVertex(iVertex1), zVertex(iVertex1))
 	    distTrEdgeMidToVertex2=arc_length(xTrEdgeMidpoint, yTrEdgeMidpoint, zTrEdgeMidpoint, &
 			xVertex(iVertex2),yVertex(iVertex2), zVertex(iVertex2))
-		print*, distTrEdgeMidToVertex1, distTrEdgeMidToVertex2, distTrEdgeMidToVertex1+distTrEdgeMidToVertex2, &
-			dvEdge(iEdge), dcEdge(iEdge)
+		!print*, distTrEdgeMidToVertex1, distTrEdgeMidToVertex2, distTrEdgeMidToVertex1+distTrEdgeMidToVertex2, &
+		!	dvEdge(iEdge), dcEdge(iEdge)
         !Case 1: TrEdgeMid closer to v1 ==> Edge midpoint belongs to triangle v2
 		!  v1----------TrEdgeMid--------Mid-----------------------------v2
 		!Case 2: TrEdgeMid closer to v2 ==> Edge midpoint belongs to triangle v1
@@ -139,7 +135,6 @@ module mpas_barycentric_interpolation
 		bary_coord=bar_coord(p, p1, p2, p3)
 	    print*, iVertex, bary_coord
     end do
-
 
   end subroutine mpas_init_barycentric_coefs!}}}
 
