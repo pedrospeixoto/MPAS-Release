@@ -1,8 +1,8 @@
 #!/bin/bash
 # Last modif Peixoto Oct 2015
 
-BASEDIR=/scratch/pd300/Work/Programas/MPAS/UNIVersion
-SOURCEDIR=${BASEDIR}/sources
+export BASEDIR=/scratch/pedrosp/
+export SOURCEDIR=${BASEDIR}/sources
 export MPI_PATH=${BASEDIR}/openmpi
 export NETCDF_PATH=${BASEDIR}/netcdf
 export PNETCDF_PATH=${BASEDIR}/pnetcdf
