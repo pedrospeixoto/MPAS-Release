@@ -3996,6 +3996,7 @@ module atm_time_integration
       integer :: k, iCell, iEdge, iCell1, iCell2, cell1, cell2
       real (kind=RKIND), pointer :: coef_3rd_order
       integer, pointer :: config_theta_adv_order
+      logical, pointer :: config_use_consitent_scheme
       integer, pointer :: nCells, nEdges, nVertLevels
       integer, pointer :: index_qv
       real (kind=RKIND) :: p0, rcv, flux
@@ -4031,6 +4032,7 @@ module atm_time_integration
 
       call mpas_pool_get_config(configs, 'config_coef_3rd_order', coef_3rd_order)
       call mpas_pool_get_config(configs, 'config_theta_adv_order', config_theta_adv_order)
+      call mpas_pool_get_config(configs, 'config_use_consitent_scheme', config_use_consitent_scheme)
 
       call mpas_pool_get_array(state, 'theta_m', theta_m, time_lev)
       call mpas_pool_get_array(diag, 'theta', theta)
@@ -4057,6 +4059,9 @@ module atm_time_integration
 
       if (config_theta_adv_order /= 3) coef_3rd_order = 0.0
 
+
+
+
       rcv = rgas / (cp-rgas)
       p0 = 1.e5  ! this should come from somewhere else...
 
@@ -4067,7 +4072,9 @@ module atm_time_integration
          end do
       end do
 
-      call mpas_init_barycentric_coefs(mesh)
+	  if(config_use_consitent_scheme) then
+      	call mpas_init_barycentric_coefs(mesh)
+      end if
 
 	  !Flux calculation
       do iEdge = 1, nEdges

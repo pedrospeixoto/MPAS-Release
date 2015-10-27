@@ -25,6 +25,7 @@
     config_monotonic = false
     config_epssm = 0.1
     config_smdiv = 0.1
+    config_use_consitent_scheme = true
 /
 
 &damping
@@ -33,7 +34,7 @@
 /
 
 &decomposition
-   config_block_decomp_file_prefix = '../grids/x1.162/icos_pol_nopt_2.graph.info.part.' 
+   config_block_decomp_file_prefix = '../grids/x1.2562/x1.2562.graph.info.part.' 
 /
 
 &restart

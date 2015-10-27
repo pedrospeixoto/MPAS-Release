@@ -1,6 +1,8 @@
 &nhyd_model
    config_start_time = '0000-01-01_00:00:00'
    config_init_case = 1
+   config_use_hcm_staggering = true
+   config_use_consitent_scheme = true
 /
 
 &dimensions
@@ -8,5 +10,5 @@
 /
 
 &decomposition
-   config_block_decomp_file_prefix = '../grids/x1.162/icos_pol_nopt_2.graph.info.part.' 
+   config_block_decomp_file_prefix = '../grids/x1.2562/x1.2562.graph.info.part.' 
 /

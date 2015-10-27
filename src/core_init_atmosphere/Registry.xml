@@ -38,6 +38,8 @@
                 <nml_option name="config_theta_adv_order"       type="integer"       default_value="3"/>
                 <nml_option name="config_coef_3rd_order"        type="real"          default_value="0.25"        in_defaults="false"/>
                 <nml_option name="config_num_halos"             type="integer"       default_value="2"           in_defaults="false"/>
+                <nml_option name="config_use_consitent_scheme"  type="logical"       default_value="false"/>
+                <nml_option name="config_use_hcm_staggering"    type="logical"       default_value="false"/>
         </nml_record>
 
         <nml_record name="dimensions" in_defaults="true">
@@ -338,6 +340,7 @@
                         <var name="theta_base" packages="met_stage_out"/>
                         <var name="surface_pressure" packages="met_stage_out"/>
                         <var name="precipw" packages="met_stage_out"/>
+
 		</stream>
 
 		<stream name="surface" 

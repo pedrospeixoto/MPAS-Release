@@ -58,6 +58,8 @@ module init_atm_cases
       integer, pointer :: config_init_case
       logical, pointer :: config_static_interp
       logical, pointer :: config_met_interp
+      logical, pointer :: config_use_consitent_scheme
+      logical, pointer :: config_use_hcm_staggering
 
       character(len=StrKIND), pointer :: mminlu
 
@@ -67,6 +69,8 @@ module init_atm_cases
 
 
       call mpas_pool_get_config(domain % blocklist % configs, 'config_init_case', config_init_case)
+      call mpas_pool_get_config(domain % blocklist % configs, 'config_use_consitent_scheme', config_use_consitent_scheme)
+      call mpas_pool_get_config(domain % blocklist % configs, 'config_use_hcm_staggering', config_use_hcm_staggering)
 
       !
       ! Do some quick checks to make sure compile options are compatible with the chosen test case
@@ -94,6 +98,12 @@ module init_atm_cases
 
 
       if ((config_init_case == 1) .or. (config_init_case == 2) .or. (config_init_case == 3)) then
+
+		 !Configure grid for modified/consistent scheme
+		 if(config_use_hcm_staggering)then
+		 	print*, "Converting grid to HCm staggering"
+		 	!call
+		 endif
 
          write(0,*) ' Jablonowski and Williamson baroclinic wave test case '
          if (config_init_case == 1) write(0,*) ' no initial perturbation '

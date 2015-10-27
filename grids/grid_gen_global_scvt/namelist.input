@@ -7,11 +7,11 @@
 /
 
 &files
-	  work_dir="../x1.162/"                 !Directory where grids are and will be stored - leave blank for current
-	  locs_dat="icos_pol_nopt_2.xyz"              !Input file with original xyz nodes file
-	  locs_dat_out="icos_pol_nopt_2out.xyz"      !Output with xyz nodes after optimization
-      graph_info="icos_pol_nopt_2.graph.info"          ! Graph info to be used by metis 
-      grid_nc="icos_pol_nopt_2_grid.nc"                ! MPAS formated grid
-      plotin="icos_pol_nopt_2_initial.ps"         !Plot of initial grid
-      plotout="icos_pol_nopt_2_final.ps"          !Plot of final optimized grid
+	  work_dir=""                 !Directory where grids are and will be stored - leave blank for current
+	  locs_dat="HR95HK_008.xyz"              !Input file with original xyz nodes file
+	  locs_dat_out="HR95HK_008out.xyz"      !Output with xyz nodes after optimization
+      graph_info="HR95HK_008.graph.info"          ! Graph info to be used by metis 
+      grid_nc="HR95HK_008_grid.nc"                ! MPAS formated grid
+      plotin="HR95HK_008_initial.ps"         !Plot of initial grid
+      plotout="HR95HK_008_final.ps"          !Plot of final optimized grid
 /
