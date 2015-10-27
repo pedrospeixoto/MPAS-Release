@@ -118,8 +118,6 @@ module init_atm_cases
             call mpas_pool_get_subpool(block_ptr % structs, 'diag', diag)
 
             call mpas_pool_get_dimension(block_ptr % dimensions, 'nCells', nCells)
-            call mpas_pool_get_dimension(block_ptr % dimensions, 'nCells', nEdges)
-            call mpas_pool_get_dimension(block_ptr % dimensions, 'nCells', nVertices)
             call mpas_pool_get_dimension(block_ptr % dimensions, 'nVertLevels', nVertLevels)
 
 		 	!Configure grid for modified/consistent scheme
