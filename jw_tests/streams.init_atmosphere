@@ -10,7 +10,7 @@
                   packages="initial_conds"
                   output_interval="initial_only"
                   clobber_mode="replace_files"
-                  precision="single"  />
+                   />
 
 <immutable_stream name="surface"
                   type="output"
