@@ -1,7 +1,7 @@
 #!/bin/bash
 # Last modif Peixoto Oct 2015
 
-export BASEDIR=/scratch/pedrosp/
+export BASEDIR=/scratch/pedrosp
 export SOURCEDIR=${BASEDIR}/sources
 export MPI_PATH=${BASEDIR}/openmpi
 export NETCDF_PATH=${BASEDIR}/netcdf
