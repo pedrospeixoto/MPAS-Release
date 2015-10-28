@@ -4034,6 +4034,7 @@ module atm_time_integration
       call mpas_pool_get_config(configs, 'config_theta_adv_order', config_theta_adv_order)
       call mpas_pool_get_config(configs, 'config_use_consitent_scheme', config_use_consitent_scheme)
 
+
       call mpas_pool_get_array(state, 'theta_m', theta_m, time_lev)
       call mpas_pool_get_array(diag, 'theta', theta)
       call mpas_pool_get_array(state, 'rho_zz', rho_zz, time_lev)
@@ -4058,9 +4059,6 @@ module atm_time_integration
       call mpas_pool_get_array(mesh, 'zb3', zb3)
 
       if (config_theta_adv_order /= 3) coef_3rd_order = 0.0
-
-
-
 
       rcv = rgas / (cp-rgas)
       p0 = 1.e5  ! this should come from somewhere else...

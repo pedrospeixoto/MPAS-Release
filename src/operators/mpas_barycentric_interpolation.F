@@ -132,10 +132,10 @@ module mpas_barycentric_interpolation
 		p3(2)=yCell(cellsOnVertex(3,iVertex))
 		p3(3)=zCell(cellsOnVertex(3,iVertex))
 		bary_coord=bar_coord(p, p1, p2, p3)
-	    print*, iEdge, indexToEdgeID(iEdge), iVertex
-	    print*, cellsOnVertex(:,iVertex)
-	    print*, bary_coord(:)
-	    print*
+	    !print*, iEdge, indexToEdgeID(iEdge), iVertex
+	    !print*, cellsOnVertex(:,iVertex)
+	    !print*, bary_coord(:)
+	    !print*
     end do
 
   end subroutine mpas_init_barycentric_coefs!}}}

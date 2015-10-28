@@ -229,13 +229,15 @@ module atm_core
       
       real (kind=RKIND), dimension(:,:), pointer :: u, uReconstructX, uReconstructY, uReconstructZ, uReconstructZonal, uReconstructMeridional
       real (kind=RKIND), dimension(:), pointer :: meshScalingDel2, meshScalingDel4, areaCell, invAreaCell
-      character(len=StrKIND), pointer :: mminlu
+      character(len=StrKIND), pointer :: mminlu, config_init_case
 
       integer, pointer :: nEdgesSolve, nCells
    
       logical, pointer :: config_do_restart, config_do_DAcycling
 
-   
+      !PXT - consistent scheme config vars
+      logical, pointer :: config_use_hcm_staggering, config_use_consitent_scheme, on_a_sphere
+
       call mpas_pool_get_subpool(block % structs, 'diag', diag)
       call mpas_pool_get_subpool(block % structs, 'state', state)
 
@@ -245,10 +247,29 @@ module atm_core
       call mpas_pool_get_array(mesh, 'areaCell', areaCell)
       call mpas_pool_get_array(mesh, 'invAreaCell', invAreaCell)
       call mpas_pool_get_dimension(mesh, 'nCells', nCells)
-  
+
+      !PXT - consistent scheme config vars
+      !call mpas_pool_get_config(block % configs, 'config_use_hcm_staggering', config_use_hcm_staggering)
+      !call mpas_pool_get_config(mesh, 'on_a_sphere', on_a_sphere)
+      call mpas_pool_get_config(block % configs, 'config_use_consitent_scheme', config_use_consitent_scheme)
+
       do iCell=1,nCells 
          invAreaCell(iCell) = 1.0_RKIND / areaCell(iCell)
       end do
+
+      !PXT - Initialize the mesh for the consistent scheme
+      !print*,"hi"
+      !print*, on_a_sphere
+      !print*, config_use_hcm_staggering
+      !print*, config_use_consitent_scheme
+  	  if(config_use_consitent_scheme)then
+	     	!if (.not. config_use_hcm_staggering ) then
+	  	  	print*, "Warning: The consistent scheme should be used with HCm staggering"
+          print*, "   run init_atmosphere with config_use_hcm_staggering=true"
+	  	  !end if
+
+      end if
+
 
       if (.not. config_do_restart .or. (config_do_restart .and. config_do_DAcycling)) then
          call atm_init_coupled_diagnostics( state, 1, diag, mesh, block % configs)
