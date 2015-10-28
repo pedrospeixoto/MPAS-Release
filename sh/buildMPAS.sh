@@ -2,21 +2,32 @@
 # Last modif Peixoto Oct 2015
 
 export BASEDIR=/scratch/pedrosp
+cd $BASEDIR
+mkdir sources
 export SOURCEDIR=${BASEDIR}/sources
 export MPI_PATH=${BASEDIR}/openmpi
 export NETCDF_PATH=${BASEDIR}/netcdf
 export PNETCDF_PATH=${BASEDIR}/pnetcdf
 export PIO_PATH=${BASEDIR}/pio
+export METIS_PATH=${BASEDIR}/metis
 
 #clear all modules
 module purge
 #module load openmpi-x86_64
 #module load openmpi-gcc-4.8.2/1.6.5 
+
+#For lince
+#module load openmpi/1.8.3-intel 
+
 module load gcc/4.8.2 
-export FC=gfortran
-export F77=gfortran
-export F90=grortran
-export CC=gcc
+#export FC=gfortran
+#export F77=gfortran
+#export F90=grortran
+#export CC=gcc
+export FC=ifort
+export F77=ifort
+export F90=ifort
+export CC=icc
 export MPIFC=mpif90
 export MPIF90=mpif90
 export MPIF77=mpif77
@@ -35,6 +46,9 @@ if ! [ -f ${SOURCEDIR}/netcdf-4.1.3.tar.gz ]; then
 fi
 if ! [ -d ${SOURCEDIR}/pio1_6_7 ]; then
 	svn export http://parallelio.googlecode.com/svn/trunk_tags/pio1_6_7/
+fi
+if ! [ -f ${SOURCEDIR}/metis-5.1.0.tar.gz ]; then
+	wget http://glaros.dtc.umn.edu/gkhome/fetch/sw/metis/metis-5.1.0.tar.gz
 fi
 
 #OPENMPI # not needed if module loaded
@@ -80,6 +94,15 @@ export PATH=${PIO_PATH}/bin:$PATH
 export NETCDF=$NETCDF_PATH
 export PNETCDF=$PNETCDF_PATH
 export PIO=$PIO_PATH
+
+#METIS
+cd $BASEDIR
+tar xvf ${SOURCEDIR}/metis-5.1.0.tar.gz
+cd metis-5.1.0
+make config prefix=${METIS_PATH}
+make install
+export LD_LIBRARY_PATH=${METIS_PATH}/lib:$LD_LIBRARY_PATH
+export PATH=${METIS_PATH}/bin:$PATH
 
 #MPAS
 #cd $BASEDIR
