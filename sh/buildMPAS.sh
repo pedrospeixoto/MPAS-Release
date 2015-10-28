@@ -104,13 +104,23 @@ make install
 export LD_LIBRARY_PATH=${METIS_PATH}/lib:$LD_LIBRARY_PATH
 export PATH=${METIS_PATH}/bin:$PATH
 
-#MPAS
-#cd $BASEDIR
-#tar xvf ${SOURCEDIR}/MPAS-Release-4.0.tar.gz
-#cd MPAS-Release-4.0
+#MPAS 
+cd $BASEDIR
+wget https://github.com/pedrospeixoto/MPAS-PXT/archive/master.zip
+mv master.zip MPAS-PXT.zip
+unzip xvf MPAS-PXT.zip
+mv MPAS-PXT-master MPAS-PXT
+
+# Grids
+cd MPAS-PXT
+cd grids
+rsync -avu pedrosp@ime.usp.br:www/grids/mpas/ .
+cd ..
+
+#Compile
 #make gfortran CORE=init_atmosphere
 
-#tar xvf ${SOURCEDIR}/x1.10242.tar.gz
+#run
 #mpirun -np 4 ./init_atmosphere_model
 
 
