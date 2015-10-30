@@ -2,6 +2,7 @@
 # Last modif Peixoto Oct 2015
 
 export BASEDIR=/scratch/pedrosp
+export BASEDIR=/var/tmp/pedrosp/MPAS
 cd $BASEDIR
 mkdir sources
 export SOURCEDIR=${BASEDIR}/sources
@@ -56,6 +57,7 @@ cd $BASEDIR
 tar xvf ${SOURCEDIR}/openmpi-1.6.5.tar.gz
 cd openmpi-1.6.5
 ./configure --prefix=${MPI_PATH}
+#./configure --prefix=${MPI_PATH} CXX=icpc
 make
 make install
 export LD_LIBRARY_PATH=${MPI_PATH}/lib:$LD_LIBRARY_PATH
@@ -117,6 +119,7 @@ cd grids
 rsync -avu pedrosp@ime.usp.br:www/grids/mpas/ .
 cd ..
 
+
 #Compile
 #make gfortran CORE=init_atmosphere
 
@@ -124,6 +127,18 @@ cd ..
 #mpirun -np 4 ./init_atmosphere_model
 
 
+# NCL - outputs
+cd MPAS-PXT
+cd sh
+. wget-ncl.sh
+mkdir ncl
+mv ncl_ncarg* ncl/
+cd ncl
+tar xvf ncl_ncarg-6.2.1.Linux_Debian7.6_x86_64_nodap_gcc472.tar.gz
+export NCL_PATH=${BASEDIR}/ncl
+export PATH=${NCL_PATH}/bin:$PATH
+export LD_LIBRARY_PATH=${NCL_PATH}/lib:$LD_LIBRARY_PATH
+export NCARG_ROOT=${NCL_PATH}
 
 
 
