@@ -2,7 +2,7 @@
 # Last modif Peixoto Oct 2015
 
 export BASEDIR=/scratch/pedrosp
-export BASEDIR=/var/tmp/pedrosp/MPAS
+#export BASEDIR=/var/tmp/pedrosp/MPAS
 cd $BASEDIR
 mkdir sources
 export SOURCEDIR=${BASEDIR}/sources
@@ -16,11 +16,12 @@ export METIS_PATH=${BASEDIR}/metis
 module purge
 #module load openmpi-x86_64
 #module load openmpi-gcc-4.8.2/1.6.5 
+module load openmpi/1.10.1-intel
 
 #For lince
 #module load openmpi/1.8.3-intel 
 
-module load gcc/4.8.2 
+#module load gcc/4.8.2 
 #export FC=gfortran
 #export F77=gfortran
 #export F90=grortran
@@ -131,6 +132,7 @@ cd ..
 cd MPAS-PXT
 cd sh
 . wget-ncl.sh
+cd $BASEDIR
 mkdir ncl
 mv ncl_ncarg* ncl/
 cd ncl
