@@ -21,6 +21,7 @@ module load gcc/4.8.2
 
 #For lince
 #module load openmpi/1.8.3-intel 
+module load openmpi/1.10.1-intel
 
 #export FC=ifort
 #export F77=ifort
