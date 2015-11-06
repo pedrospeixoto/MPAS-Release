@@ -1,8 +1,17 @@
 #!/bin/bash
-# Last modif Peixoto Oct 2015
+# Last modif Peixoto Nov 2015
+# Comment what you don't need 
 
+#Lince
 export BASEDIR=/scratch/pedrosp
+
+#MAC cluster
+export BASEDIR=/scratch/pr63so/di25coq
+
+#CFD
 #export BASEDIR=/var/tmp/pedrosp/MPAS
+
+
 cd $BASEDIR
 mkdir sources
 export SOURCEDIR=${BASEDIR}/sources
@@ -12,28 +21,50 @@ export PNETCDF_PATH=${BASEDIR}/pnetcdf
 export PIO_PATH=${BASEDIR}/pio
 export METIS_PATH=${BASEDIR}/metis
 
+
 #clear all modules
 module purge
+
 #module load openmpi-x86_64
 #module load openmpi-gcc-4.8.2/1.6.5 
-module load openmpi/1.10.1-intel
+
 
 #For lince
 #module load openmpi/1.8.3-intel 
+module load openmpi/1.10.1-intel
 
-#module load gcc/4.8.2 
-#export FC=gfortran
-#export F77=gfortran
-#export F90=grortran
-#export CC=gcc
+#For MAC cluster
+module load netcdf/mpi/4.3
+module load pnetcdf/1.6
+export NETCDF_PATH=${NETCDF_BASE}
+export PNETCDF_PATH=${PNETCDF_BASE}
+export PIO_PATH=${BASEDIR}/pio
+
+
+#For gnu
+module load gcc/4.8.2 
+export FC=gfortran
+export F77=gfortran
+export F90=grortran
+export CC=gcc
+
+#For intel
 export FC=ifort
 export F77=ifort
 export F90=ifort
 export CC=icc
+
+#MPI
 export MPIFC=mpif90
 export MPIF90=mpif90
 export MPIF77=mpif77
 export MPICC=mpicc
+
+#For MPAS
+export NETCDF=$NETCDF_PATH
+export PNETCDF=$PNETCDF_PATH
+export PIO=$PIO_PATH
+
 
 cd $SOURCEDIR
 #GET SOURCES
@@ -94,10 +125,6 @@ make install
 export LD_LIBRARY_PATH=${PIO_PATH}/lib:$LD_LIBRARY_PATH
 export PATH=${PIO_PATH}/bin:$PATH
 
-export NETCDF=$NETCDF_PATH
-export PNETCDF=$PNETCDF_PATH
-export PIO=$PIO_PATH
-
 #METIS
 cd $BASEDIR
 tar xvf ${SOURCEDIR}/metis-5.1.0.tar.gz
@@ -117,7 +144,10 @@ mv MPAS-PXT-master MPAS-PXT
 # Grids
 cd MPAS-PXT
 cd grids
-rsync -avu pedrosp@ime.usp.br:www/grids/mpas/ .
+#rsync -avu pedrosp@ime.usp.br:www/grids/mpas/ .
+wget -b --recursive --no-parent --no-clobber --convert-links --cut-dirs=3 --no-host-directories http://www.ime.usp.br/~pedrosp/grids/mpas/
+rm index.* robots.txt
+find . -type f -name 'index.html*' -delete
 cd ..
 
 
@@ -141,6 +171,8 @@ export NCL_PATH=${BASEDIR}/ncl
 export PATH=${NCL_PATH}/bin:$PATH
 export LD_LIBRARY_PATH=${NCL_PATH}/lib:$LD_LIBRARY_PATH
 export NCARG_ROOT=${NCL_PATH}
+
+
 
 
 
