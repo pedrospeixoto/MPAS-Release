@@ -25,7 +25,7 @@
     config_monotonic = false
     config_epssm = 0.1
     config_smdiv = 0.1
-    config_use_consitent_scheme = true
+    config_consitent_scheme = true
 /
 
 &damping
