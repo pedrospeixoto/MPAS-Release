@@ -79,9 +79,15 @@ if ! [ -f ${SOURCEDIR}/netcdf-4.1.3.tar.gz ]; then
 fi
 if ! [ -d ${SOURCEDIR}/pio1_6_7 ]; then
 	svn export http://parallelio.googlecode.com/svn/trunk_tags/pio1_6_7/
+	
 fi
 if ! [ -f ${SOURCEDIR}/metis-5.1.0.tar.gz ]; then
 	wget http://glaros.dtc.umn.edu/gkhome/fetch/sw/metis/metis-5.1.0.tar.gz
+fi
+
+if ! [ -f ${SOURCEDIR}/pio.zip ]; then
+	wget https://github.com/NCAR/ParallelIO/archive/master.zip
+	mv master.zip pio.zip
 fi
 
 #OPENMPI # not needed if module loaded
@@ -124,6 +130,15 @@ make
 make install
 export LD_LIBRARY_PATH=${PIO_PATH}/lib:$LD_LIBRARY_PATH
 export PATH=${PIO_PATH}/bin:$PATH
+
+#PIO from git
+cd $BASEDIR
+unzip ${SOURCEDIR}/pio.zip
+cd ParallelIO-master
+CC=mpicc FC=mpif90 cmake -DNetCDF_PATH=${NETCDF_PATH} -DPnetCDF_PATH=${PNETCDF_PATH} .
+
+
+
 
 #METIS
 cd $BASEDIR
