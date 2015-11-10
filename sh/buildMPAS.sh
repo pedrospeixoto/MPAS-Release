@@ -11,6 +11,8 @@ export BASEDIR=/scratch/pr63so/di25coq
 #CFD
 #export BASEDIR=/var/tmp/pedrosp/MPAS
 
+#Laptop
+export BASEDIR=/opt
 
 cd $BASEDIR
 mkdir sources
@@ -135,8 +137,9 @@ export PATH=${PIO_PATH}/bin:$PATH
 cd $BASEDIR
 unzip ${SOURCEDIR}/pio.zip
 cd ParallelIO-master
-CC=mpicc FC=mpif90 cmake -DNetCDF_PATH=${NETCDF_PATH} -DPnetCDF_PATH=${PNETCDF_PATH} .
-
+CC=mpicc FC=mpif90 cmake -DNetCDF_PATH=${NETCDF_PATH} -DPnetCDF_PATH=${PNETCDF_PATH} -DCMAKE_INSTALL_PREFIX:PATH=${PIO_PATH} .
+make
+make install
 
 
 
