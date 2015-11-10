@@ -9,9 +9,10 @@ OBJS = mpas_vector_operations.o \
        mpas_tracer_advection_helpers.o \
        mpas_tracer_advection_mono.o \
        mpas_tracer_advection_std.o \
-	   mpas_geometry_utils.o \
-	   mpas_barycentric_interpolation.o
-
+	     mpas_geometry_utils.o \
+	     mpas_consistent.o
+#PXT added mpas_consistent.o	   
+	   
 DEPS := $(shell find ../core_$(CORE)/ -type f -name "*.xml" ! -name "*processed.xml")
 
 all: operators
@@ -29,7 +30,9 @@ mpas_tracer_advection_helpers.o: mpas_geometry_utils.o $(DEPS)
 mpas_tracer_advection_mono.o: mpas_tracer_advection_helpers.o
 mpas_tracer_advection_std.o: mpas_tracer_advection_helpers.o
 mpas_geometry_utils.o: mpas_matrix_operations.o
-mpas_barycentric_interpolation.o:
+
+#PXT added consistent.o
+mpas_consistent.o: mpas_vector_operations.o
 
 clean:
 	$(RM) *.o *.mod *.f90 libops.a

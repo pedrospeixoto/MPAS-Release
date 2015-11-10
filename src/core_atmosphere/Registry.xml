@@ -71,8 +71,9 @@
                 <nml_option name="config_apvm_upwinding"             type="real"          default_value="0.5"         in_defaults="false"/>
                 <nml_option name="config_h_ScaleWithMesh"            type="logical"       default_value="true"/>
                 <nml_option name="config_num_halos"                  type="integer"       default_value="2"           in_defaults="false"/>
-                <nml_option name="config_consitent_scheme"           type="logical"       default_value="false"/>
-                <nml_option name="config_vecrecon_perot"             type="logical"       default_value="false"/>
+                <nml_option name="config_consistent_scheme"          type="logical"       default_value="false"/>
+                <nml_option name="config_KE_vecrecon_perot"          type="logical"       default_value="false"/>
+                <nml_option name="config_KE_vecrecon_rbf"            type="logical"       default_value="false"/>
                 <nml_option name="config_bary_interpol"              type="logical"       default_value="false"/>
                 <nml_option name="config_consist_perp"               type="logical"       default_value="false"/>
         </nml_record>

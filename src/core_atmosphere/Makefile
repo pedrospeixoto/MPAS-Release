@@ -5,7 +5,8 @@ PHYSICS=-DDO_PHYSICS
 
 OBJS = mpas_atm_core.o \
        mpas_atm_core_interface.o \
-       mpas_atm_interp_diagnostics.o
+       mpas_atm_interp_diagnostics.o 
+
 
 all: physcore dycore atmcore
 
@@ -33,7 +34,7 @@ physcore:
 	( cd ../..; ln -sf ./src/core_atmosphere/physics/physics_wrf/files/*TBL .)
 	( cd ../..; ln -sf ./src/core_atmosphere/physics/physics_wrf/files/*DATA* .)
 
-dycore:
+dycore: 
 	( cd dynamics; $(MAKE) all PHYSICS="$(PHYSICS)" )
 
 atmcore: physcore dycore $(OBJS)
@@ -41,7 +42,7 @@ atmcore: physcore dycore $(OBJS)
 
 mpas_atm_core_interface.o: mpas_atm_core.o
 
-mpas_atm_core.o: dycore mpas_atm_interp_diagnostics.o
+mpas_atm_core.o: dycore mpas_atm_interp_diagnostics.o 
 
 clean:
 	( cd physics; $(MAKE) clean )

@@ -1,21 +1,21 @@
 !***********************************************************************
 !
-!  mpas_barycentric_interpolation
+!  mpas_consistent
 !
-!> \brief   MPAS Barycentric interpolation  module
+!> \brief   MPAS  module with routines for consistent scheme
 !> \author  Pedro Peixoto
 !> \date    Oct/15
 !> \details
-!> This module provides routines for performing linear barycentric interpolations
+!> This module provides routines for performing the consistent scheme methods of Peixoto JCP 2015
 !
 !-----------------------------------------------------------------------
-module mpas_barycentric_interpolation
+module mpas_consistent
 
   use mpas_derived_types
   use mpas_pool_routines
   use mpas_configure
   use mpas_constants
-
+  use mpas_vector_operations
 
   implicit none
 
@@ -23,6 +23,125 @@ module mpas_barycentric_interpolation
 
 
   contains
+
+!***********************************************************************
+!
+!  routine mpas_initialize_vectors_general
+!
+!> \brief   MPAS initialization routine for vector
+!> \author  Pedro Peixoto
+!> \date    Nov/2015
+!> \details
+!> This routine computes geometric fields that will be potentially useful for calling
+!> the interpolation routines. It is general in the sense that it allows correct calculation when
+!> the grid is HCm (velocities given at the midpoint of Voronoi edges)
+!>
+!> Input: the mesh
+!> Output:
+!>      edgeNormalVectors - the unit vector normal to the edge and tangent to the sphere
+!>      cellTangentPlane - 2 orthogonal unit vectors in the tangent plane of each cell
+!>                         The first unit vector is chosen to point toward the center of the first
+!>                         edge on the cell.
+!>      localVerticalUnitVectors - the unit normal vector of the tangent plane at the center
+!>                         of each cell
+!-----------------------------------------------------------------------
+  subroutine mpas_initialize_vectors_general(meshPool)!{{{
+
+    implicit none
+
+    type (mpas_pool_type), intent(in) :: meshPool  !< Input: Mesh information
+
+    integer :: iEdge, iCell, cell1, cell2
+    integer, pointer :: nCells, nEdges
+    integer, dimension(:,:), pointer :: cellsOnEdge, verticesOnEdge, edgesOnCell
+    real(kind=RKIND), dimension(:), pointer :: xCell, yCell, zCell, xEdge, yEdge, zEdge
+    real(kind=RKIND), dimension(:,:), pointer :: localVerticalUnitVectors, edgeNormalVectors
+    real(kind=RKIND), dimension(:,:,:), pointer :: cellTangentPlane
+    real(kind=RKIND), dimension(3) :: xHatPlane, yHatPlane, rHat
+    real(kind=RKIND) :: normalDotRHat
+    logical, pointer :: on_a_sphere
+
+    call mpas_pool_get_config(meshPool, 'on_a_sphere', on_a_sphere)
+
+    call mpas_pool_get_array(meshPool, 'xCell', xCell)
+    call mpas_pool_get_array(meshPool, 'yCell', yCell)
+    call mpas_pool_get_array(meshPool, 'zCell', zCell)
+    call mpas_pool_get_array(meshPool, 'xEdge', xEdge)
+    call mpas_pool_get_array(meshPool, 'yEdge', yEdge)
+    call mpas_pool_get_array(meshPool, 'zEdge', zEdge)
+    call mpas_pool_get_array(meshPool, 'cellsOnEdge', cellsOnEdge)
+    call mpas_pool_get_array(meshPool, 'verticesOnEdge', verticesOnEdge)
+    call mpas_pool_get_array(meshPool, 'edgesOnCell', edgesOnCell)
+
+    call mpas_pool_get_dimension(meshPool, 'nCells', nCells)
+    call mpas_pool_get_dimension(meshPool, 'nEdges', nEdges)
+
+    call mpas_pool_get_array(meshPool, 'localVerticalUnitVectors', localVerticalUnitVectors)
+    call mpas_pool_get_array(meshPool, 'edgeNormalVectors', edgeNormalVectors)
+    call mpas_pool_get_array(meshPool, 'cellTangentPlane', cellTangentPlane)
+
+    ! init arrays
+    edgeNormalVectors = 0
+    localVerticalUnitVectors = 0
+
+    ! loop over all cells to be solved on this block
+    do iCell = 1, nCells
+      if (on_a_sphere) then
+        localVerticalUnitVectors(1,iCell) = xCell(iCell)
+        localVerticalUnitVectors(2,iCell) = yCell(iCell)
+        localVerticalUnitVectors(3,iCell) = zCell(iCell)
+        call mpas_unit_vec_in_r3(localVerticalUnitVectors(:,iCell))
+      else ! on a plane
+        localVerticalUnitVectors(:,iCell) = (/ 0., 0., 1. /)
+      end if
+    end do
+
+    ! Initialize normal unit vectors at each edge
+    ! These vectors point from cell to cell.
+    ! At boundaries, one cell does not exist, so it points from cell to edge.
+    do iEdge = 1,nEdges
+      cell1 = cellsOnEdge(1,iEdge)
+      cell2 = cellsOnEdge(2,iEdge)
+
+      if (cell1 == nCells+1) then ! this is a boundary edge
+        ! the normal points from the cell location to the edge location
+        edgeNormalVectors(1,iEdge) = xEdge(iEdge) - xCell(cell2)
+        edgeNormalVectors(2,iEdge) = yEdge(iEdge) - yCell(cell2)
+        edgeNormalVectors(3,iEdge) = zEdge(iEdge) - zCell(cell2)
+
+      elseif (cell2 == nCells+1) then ! this is a boundary edge
+        ! the normal points from the cell location to the edge location
+        edgeNormalVectors(1,iEdge) = xEdge(iEdge) - xCell(cell1)
+        edgeNormalVectors(2,iEdge) = yEdge(iEdge) - yCell(cell1)
+        edgeNormalVectors(3,iEdge) = zEdge(iEdge) - zCell(cell1)
+
+      else ! this is not a boundary cell
+        ! the normal points from the cell 1 to cell2
+        ! mrp problem: on periodic domains, vectors on edges of domain point the wrong way.
+        edgeNormalVectors(1,iEdge) = xCell(cell2) - xCell(cell1)
+        edgeNormalVectors(2,iEdge) = yCell(cell2) - yCell(cell1)
+        edgeNormalVectors(3,iEdge) = zCell(cell2) - zCell(cell1)
+
+      endif
+      call mpas_unit_vec_in_r3(edgeNormalVectors(:,iEdge))
+    end do
+
+    do iCell=1,nCells
+      iEdge = edgesOnCell(1,iCell)
+      ! xHat and yHat are a local basis in the plane of the horizontal cell
+      ! we arbitrarily choose xHat to point toward the first edge
+      rHat = localVerticalUnitVectors(:,iCell)
+      normalDotRHat = sum(edgeNormalVectors(:,iEdge)*rHat)
+      xHatPlane = edgeNormalVectors(:,iEdge) - normalDotRHat*rHat
+      call mpas_unit_vec_in_r3(xHatPlane)
+
+      call mpas_cross_product_in_r3(rHat, xHatPlane, yHatPlane)
+      call mpas_unit_vec_in_r3(yHatPlane) ! just to be sure...
+      cellTangentPlane(:,1,iCell) = xHatPlane
+      cellTangentPlane(:,2,iCell) = yHatPlane
+    end do
+
+  end subroutine mpas_initialize_vectors_general!}}}
 
 !***********************************************************************
 !
@@ -245,5 +364,5 @@ module mpas_barycentric_interpolation
     return
   end function cross_product
 
-end module mpas_barycentric_interpolation
+end module mpas_consistent
 

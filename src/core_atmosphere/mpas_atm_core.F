@@ -11,6 +11,7 @@ module atm_core
    use mpas_derived_types
    use mpas_pool_routines
    use mpas_dmpar
+   use mpas_consistent
 
    type (MPAS_Clock_type), pointer :: clock
 
@@ -236,7 +237,7 @@ module atm_core
       logical, pointer :: config_do_restart, config_do_DAcycling
 
       !PXT - consistent scheme config vars
-      logical, pointer :: config_use_hcm_staggering, config_use_consitent_scheme, on_a_sphere
+      logical, pointer :: config_use_consistent_scheme
 
       call mpas_pool_get_subpool(block % structs, 'diag', diag)
       call mpas_pool_get_subpool(block % structs, 'state', state)
@@ -251,23 +252,16 @@ module atm_core
       !PXT - consistent scheme config vars
       !call mpas_pool_get_config(block % configs, 'config_use_hcm_staggering', config_use_hcm_staggering)
       !call mpas_pool_get_config(mesh, 'on_a_sphere', on_a_sphere)
-      call mpas_pool_get_config(block % configs, 'config_use_consitent_scheme', config_use_consitent_scheme)
+      call mpas_pool_get_config(block % configs, 'config_use_consistent_scheme', config_use_consistent_scheme)
 
       do iCell=1,nCells 
          invAreaCell(iCell) = 1.0_RKIND / areaCell(iCell)
       end do
 
       !PXT - Initialize the mesh for the consistent scheme
-      !print*,"hi"
-      !print*, on_a_sphere
-      !print*, config_use_hcm_staggering
-      !print*, config_use_consitent_scheme
-  	  if(config_use_consitent_scheme)then
-	     	!if (.not. config_use_hcm_staggering ) then
-	  	  	print*, "Warning: The consistent scheme should be used with HCm staggering"
-          print*, "   run init_atmosphere with config_use_hcm_staggering=true"
-	  	  !end if
-
+  	  if(config_use_consistent_scheme)then
+	  	  	write(*,*) "Warning: The consistent scheme should be used with HCm staggering"
+          write(*,*) "   run init_atmosphere with config_use_hcm_staggering=true"
       end if
 
 
@@ -276,7 +270,13 @@ module atm_core
       end if
       call atm_compute_solve_diagnostics(dt, state, 1, diag, mesh, block % configs)
 
+      !PXT - general vector initialization - modified to allow HCm grids
+
+
+      !This was commented as it is already equivalent to calling mpas_initialize_vectors
       call mpas_rbf_interp_initialize(mesh)
+
+
       call mpas_init_reconstruct(mesh)
 
       call mpas_pool_get_array(state, 'u', u, 1)

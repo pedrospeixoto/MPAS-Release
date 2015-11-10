@@ -16,7 +16,8 @@ module atm_time_integration
    ! Added only clause to keep xlf90 from getting confused from the overloaded abs intrinsic in mpas_timekeeping
    use mpas_timekeeping, only: MPAS_Time_type, MPAS_TimeInterval_type, &
                                mpas_set_time, mpas_set_timeInterval, mpas_get_time, operator(+), add_t_ti
-   use mpas_barycentric_interpolation
+   !PXT - module with all new consistent scheme routines
+   use mpas_consistent
 
 #ifdef DO_PHYSICS
    use mpas_atmphys_driver_microphysics
@@ -3996,7 +3997,14 @@ module atm_time_integration
       integer :: k, iCell, iEdge, iCell1, iCell2, cell1, cell2
       real (kind=RKIND), pointer :: coef_3rd_order
       integer, pointer :: config_theta_adv_order
-      logical, pointer :: config_consitent_scheme
+
+      !PXT additional flags
+      logical, pointer :: config_consistent_scheme
+      logical, pointer :: config_KE_vecrecon_perot
+      logical, pointer :: config_KE_vecrecon_rbf
+      logical, pointer :: config_bary_interpol
+      logical, pointer :: config_consist_perp
+
       integer, pointer :: nCells, nEdges, nVertLevels
       integer, pointer :: index_qv
       real (kind=RKIND) :: p0, rcv, flux
@@ -4032,7 +4040,13 @@ module atm_time_integration
 
       call mpas_pool_get_config(configs, 'config_coef_3rd_order', coef_3rd_order)
       call mpas_pool_get_config(configs, 'config_theta_adv_order', config_theta_adv_order)
-      call mpas_pool_get_config(configs, 'config_consitent_scheme', config_consitent_scheme)
+
+      !PXT additional flags
+      call mpas_pool_get_config(configs, 'config_consistent_scheme', config_consistent_scheme)
+      call mpas_pool_get_config(configs, 'config_KE_vecrecon_perot', config_KE_vecrecon_perot)
+      call mpas_pool_get_config(configs, 'config_KE_vecrecon_rbf', config_KE_vecrecon_rbf)
+      call mpas_pool_get_config(configs, 'config_bary_interpol', config_bary_interpol)
+      call mpas_pool_get_config(configs, 'config_consist_perp', config_consist_perp)
 
 
       call mpas_pool_get_array(state, 'theta_m', theta_m, time_lev)
@@ -4070,9 +4084,17 @@ module atm_time_integration
          end do
       end do
 
-	  if(config_consitent_scheme) then
+
+      !PXT initialize weights
+	   if(config_consistent_scheme) then
+	      print*,  config_consistent_scheme
+        print*,  config_KE_vecrecon_perot
+        print*,  config_KE_vecrecon_rbf
+        print*,  config_bary_interpol
+        print*, config_consist_perp
+
       	call mpas_init_barycentric_coefs(mesh)
-      end if
+     end if
 
 	  !Flux calculation
       do iEdge = 1, nEdges
