@@ -11,7 +11,6 @@ module atm_core
    use mpas_derived_types
    use mpas_pool_routines
    use mpas_dmpar
-   use mpas_consistent
 
    type (MPAS_Clock_type), pointer :: clock
 
@@ -204,6 +203,10 @@ module atm_core
       use mpas_rbf_interpolation
       use mpas_vector_reconstruction
       use mpas_stream_manager
+
+      !PXT added module with routines for consistent scheme
+      use mpas_consistent
+
 #ifdef DO_PHYSICS
 !     use mpas_atmphys_aquaplanet
       use mpas_atmphys_control
@@ -228,7 +231,9 @@ module atm_core
 
       integer :: iCell
       
-      real (kind=RKIND), dimension(:,:), pointer :: u, uReconstructX, uReconstructY, uReconstructZ, uReconstructZonal, uReconstructMeridional
+      !PXT - This was commented because will be done in solve_diagnostics
+      !real (kind=RKIND), dimension(:,:), pointer :: u, uReconstructX, uReconstructY, uReconstructZ, uReconstructZonal, uReconstructMeridional
+
       real (kind=RKIND), dimension(:), pointer :: meshScalingDel2, meshScalingDel4, areaCell, invAreaCell
       character(len=StrKIND), pointer :: mminlu, config_init_case
 
@@ -237,7 +242,7 @@ module atm_core
       logical, pointer :: config_do_restart, config_do_DAcycling
 
       !PXT - consistent scheme config vars
-      logical, pointer :: config_use_consistent_scheme
+      logical, pointer :: config_consistent_scheme
 
       call mpas_pool_get_subpool(block % structs, 'diag', diag)
       call mpas_pool_get_subpool(block % structs, 'state', state)
@@ -250,49 +255,54 @@ module atm_core
       call mpas_pool_get_dimension(mesh, 'nCells', nCells)
 
       !PXT - consistent scheme config vars
-      !call mpas_pool_get_config(block % configs, 'config_use_hcm_staggering', config_use_hcm_staggering)
-      !call mpas_pool_get_config(mesh, 'on_a_sphere', on_a_sphere)
-      call mpas_pool_get_config(block % configs, 'config_use_consistent_scheme', config_use_consistent_scheme)
+      call mpas_pool_get_config(block % configs, 'config_consistent_scheme', config_consistent_scheme)
 
       do iCell=1,nCells 
          invAreaCell(iCell) = 1.0_RKIND / areaCell(iCell)
       end do
 
       !PXT - Initialize the mesh for the consistent scheme
-  	  if(config_use_consistent_scheme)then
-	  	  	write(*,*) "Warning: The consistent scheme should be used with HCm staggering"
-          write(*,*) "   run init_atmosphere with config_use_hcm_staggering=true"
+  	  if(config_consistent_scheme)then
+  	      write(0,*)
+	  	  	write(0,*) "WARNING: The consistent scheme should be used with HCm staggering"
+          write(0,*) "   run init_atmosphere with config_use_hcm_staggering=true"
+          write(0,*)
       end if
-
 
       if (.not. config_do_restart .or. (config_do_restart .and. config_do_DAcycling)) then
          call atm_init_coupled_diagnostics( state, 1, diag, mesh, block % configs)
       end if
-      call atm_compute_solve_diagnostics(dt, state, 1, diag, mesh, block % configs)
 
-      !PXT - general vector initialization - modified to allow HCm grids
+      !PXT - General vector initialization - modified to allow HCm grids
+      !        Initialize vectors - normal/tangent to edges
+      call mpas_initialize_vectors_general(mesh)
 
+      !PXT - The RBF reconstruction initialization was moved here as it is needed for
+      !      the diagonstics calculation
 
-      !This was commented as it is already equivalent to calling mpas_initialize_vectors
-      call mpas_rbf_interp_initialize(mesh)
+      !PXT - This was commented as it is already equivalent to calling mpas_initialize_vectors_general
+      !call mpas_rbf_interp_initialize(mesh)
 
-
+      !Pre-calculate RBF weights
       call mpas_init_reconstruct(mesh)
 
-      call mpas_pool_get_array(state, 'u', u, 1)
-      call mpas_pool_get_array(diag, 'uReconstructX', uReconstructX)
-      call mpas_pool_get_array(diag, 'uReconstructY', uReconstructY)
-      call mpas_pool_get_array(diag, 'uReconstructZ', uReconstructZ)
-      call mpas_pool_get_array(diag, 'uReconstructZonal', uReconstructZonal)
-      call mpas_pool_get_array(diag, 'uReconstructMeridional', uReconstructMeridional)
-      call mpas_reconstruct(mesh, u,                   &
-                            uReconstructX,             &
-                            uReconstructY,             &
-                            uReconstructZ,             &
-                            uReconstructZonal,         &
-                            uReconstructMeridional     &
-                           )
-   
+      !This was moved to inside the solve_diagnostics
+      !call mpas_pool_get_array(state, 'u', u, 1)
+      !call mpas_pool_get_array(diag, 'uReconstructX', uReconstructX)
+      !call mpas_pool_get_array(diag, 'uReconstructY', uReconstructY)
+      !call mpas_pool_get_array(diag, 'uReconstructZ', uReconstructZ)
+      !call mpas_pool_get_array(diag, 'uReconstructZonal', uReconstructZonal)
+      !call mpas_pool_get_array(diag, 'uReconstructMeridional', uReconstructMeridional)
+      !call mpas_reconstruct(mesh, u,                   &
+      !                      uReconstructX,             &
+      !                      uReconstructY,             &
+      !                      uReconstructZ,             &
+      !                      uReconstructZonal,         &
+      !                      uReconstructMeridional     &
+      !                    )
+
+      call atm_compute_solve_diagnostics(dt, state, 1, diag, mesh, block % configs)
+
 #ifdef DO_PHYSICS
       !check that all the physics options are correctly defined and that at least one physics
       !parameterization is called (using the logical moist_physics):

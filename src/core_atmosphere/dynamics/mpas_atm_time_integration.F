@@ -16,6 +16,7 @@ module atm_time_integration
    ! Added only clause to keep xlf90 from getting confused from the overloaded abs intrinsic in mpas_timekeeping
    use mpas_timekeeping, only: MPAS_Time_type, MPAS_TimeInterval_type, &
                                mpas_set_time, mpas_set_timeInterval, mpas_get_time, operator(+), add_t_ti
+
    !PXT - module with all new consistent scheme routines
    use mpas_consistent
 
@@ -3710,10 +3711,32 @@ module atm_time_integration
       integer, dimension(:,:), pointer :: cellsOnEdge, cellsOnVertex, verticesOnEdge, edgesOnCell, edgesOnEdge, edgesOnVertex
       integer, dimension(:), pointer :: nEdgesOnCell, nEdgesOnEdge
 
+      !PXT - Added reconstruction to solve_diagnostics
+      real (kind=RKIND), dimension(:,:), pointer :: uReconstructX, uReconstructY, uReconstructZ, &
+                                                    uReconstructZonal, uReconstructMeridional
+
+      !PXT - This might become of no use for now, since this is now a parameter read from namelist (usefull for testing)
       logical, parameter :: hollingsworth=.true.
+
       real (kind=RKIND), allocatable, dimension(:,:) :: ke_vertex
       real (kind=RKIND) :: ke_fact
       real (kind=RKIND), pointer :: config_apvm_upwinding
+
+      !PXT additional flags
+      logical, pointer :: config_consistent_scheme
+      logical, pointer :: config_KE_vecrecon_perot
+      logical, pointer :: config_KE_vecrecon_rbf
+      logical, pointer :: config_bary_interpol
+      logical, pointer :: config_consist_perp
+      logical, pointer :: config_hollingsworth
+
+      !PXT additional flags
+      call mpas_pool_get_config(configs, 'config_consistent_scheme', config_consistent_scheme)
+      call mpas_pool_get_config(configs, 'config_KE_vecrecon_perot', config_KE_vecrecon_perot)
+      call mpas_pool_get_config(configs, 'config_KE_vecrecon_rbf', config_KE_vecrecon_rbf)
+      call mpas_pool_get_config(configs, 'config_bary_interpol', config_bary_interpol)
+      call mpas_pool_get_config(configs, 'config_consist_perp', config_consist_perp)
+      call mpas_pool_get_config(configs, 'config_hollingsworth', config_hollingsworth)
 
 
       call mpas_pool_get_config(configs, 'config_apvm_upwinding', config_apvm_upwinding)
@@ -3733,6 +3756,13 @@ module atm_time_integration
       call mpas_pool_get_array(diag, 'pv_cell', pv_cell)
       call mpas_pool_get_array(diag, 'gradPVn', gradPVn)
       call mpas_pool_get_array(diag, 'gradPVt', gradPVt)
+
+      !PXT- Added vector reconstruction to diagnostics
+      call mpas_pool_get_array(diag, 'uReconstructX', uReconstructX)
+      call mpas_pool_get_array(diag, 'uReconstructY', uReconstructY)
+      call mpas_pool_get_array(diag, 'uReconstructZ', uReconstructZ)
+      call mpas_pool_get_array(diag, 'uReconstructZonal', uReconstructZonal)
+      call mpas_pool_get_array(diag, 'uReconstructMeridional', uReconstructMeridional)
 
       call mpas_pool_get_array(mesh, 'weightsOnEdge', weightsOnEdge)
       call mpas_pool_get_array(mesh, 'kiteAreasOnVertex', kiteAreasOnVertex)
@@ -3762,12 +3792,12 @@ module atm_time_integration
       !
       ! Compute height on cell edges at velocity locations
       !
+      !PXT - need to add barycentric interpolation here as well
       do iEdge=1,nEdges
          cell1 = cellsOnEdge(1,iEdge)
          cell2 = cellsOnEdge(2,iEdge)
          do k=1,nVertLevels
             h_edge(k,iEdge) = 0.5 * (h(k,cell1) + h(k,cell2))
-            !PXT - need to add barycentric interpolation here as well
          end do
       end do
 
@@ -3775,7 +3805,7 @@ module atm_time_integration
       !
       ! Compute circulation and relative vorticity at each vertex
       !
-      !PXT - vorticity ok
+      !PXT - vorticity ok, no changes
       circulation(:,:) = 0.0
       do iEdge=1,nEdges
          do k=1,nVertLevels
@@ -3794,7 +3824,7 @@ module atm_time_integration
       !
       ! Compute the divergence at each cell center
       !
-      !PXT divergence ok
+      !PXT divergence ok, no changes
       divergence(:,:) = 0.0
       do iEdge=1,nEdges
          cell1 = cellsOnEdge(1,iEdge)
@@ -3812,27 +3842,56 @@ module atm_time_integration
       end do
 
 
+      !PXT - reconstruct velocity to cell center - to be used in KE calculation
+      if(config_KE_vecrecon_perot)then !Reconstruct velocity to cell centers with Perot and
+        call mpas_perot_reconstruct(mesh, u,                   &
+                            uReconstructX,             &
+                            uReconstructY,             &
+                            uReconstructZ,             &
+                            uReconstructZonal,         &
+                            uReconstructMeridional     &
+                           )
+      else
+        call mpas_reconstruct(mesh, u,                   &
+                            uReconstructX,             &
+                            uReconstructY,             &
+                            uReconstructZ,             &
+                            uReconstructZonal,         &
+                            uReconstructMeridional     &
+                           )
+      end if
+
       !
-      ! Compute kinetic energy in each cell (Ringler et al JCP 2009)
+      ! Compute kinetic energy in each cell
       !
+      !PXT - modify KE calculation
       ke(:,:) = 0.0
+      if(config_KE_vecrecon_perot .or. config_KE_vecrecon_rbf)then
+         !Use reconstructed velocity to calculate KE
+         do iCell=1,nCells
+              do k=1,nVertLevels
+                 ke(k,iCell) = uReconstructX(k,iCell)*uReconstructX(k,iCell) + &
+                               uReconstructY(k,iCell)*uReconstructY(k,iCell) + &
+                               uReconstructZ(k,iCell)*uReconstructZ(k,iCell)
+                 ke(k,iCell) = ke(k,iCell) * 0.5
+              end do
+        end do
+
+      else !Use Ringler et al JCP 2009 Kinetic energy (inconsistent but energy conserving)
       ! Replace 2.0 with 2 in exponentiation to avoid outside chance that
       ! compiler will actually allow "float raised to float" operation
-      !PXT - modify KE
-      do iCell=1,nCells
-         do i=1,nEdgesOnCell(iCell)
-            iEdge = edgesOnCell(i,iCell)
-            do k=1,nVertLevels
-            	!PXT Reconstruct velocity and then use this to calculate the KE
-            	!Will need the normals, or can be done in the same style as the divergence is calculated
-            	! add function like atm_vector_recon_perot or do on the fly?
-               ke(k,iCell) = ke(k,iCell) + 0.25 * dcEdge(iEdge) * dvEdge(iEdge) * u(k,iEdge)**2
-            end do
-         end do
-         do k=1,nVertLevels
-            ke(k,iCell) = ke(k,iCell) * invAreaCell(iCell)
-         end do
-      end do
+        do iCell=1,nCells
+           do i=1,nEdgesOnCell(iCell)
+              iEdge = edgesOnCell(i,iCell)
+              do k=1,nVertLevels
+                 ke(k,iCell) = ke(k,iCell) + 0.25 * dcEdge(iEdge) * dvEdge(iEdge) * u(k,iEdge)**2
+              end do
+           end do
+           do k=1,nVertLevels
+              ke(k,iCell) = ke(k,iCell) * invAreaCell(iCell)
+           end do
+        end do
+      end if
 
       if (hollingsworth) then
 
@@ -4000,10 +4059,7 @@ module atm_time_integration
 
       !PXT additional flags
       logical, pointer :: config_consistent_scheme
-      logical, pointer :: config_KE_vecrecon_perot
-      logical, pointer :: config_KE_vecrecon_rbf
       logical, pointer :: config_bary_interpol
-      logical, pointer :: config_consist_perp
 
       integer, pointer :: nCells, nEdges, nVertLevels
       integer, pointer :: index_qv
@@ -4043,10 +4099,7 @@ module atm_time_integration
 
       !PXT additional flags
       call mpas_pool_get_config(configs, 'config_consistent_scheme', config_consistent_scheme)
-      call mpas_pool_get_config(configs, 'config_KE_vecrecon_perot', config_KE_vecrecon_perot)
-      call mpas_pool_get_config(configs, 'config_KE_vecrecon_rbf', config_KE_vecrecon_rbf)
       call mpas_pool_get_config(configs, 'config_bary_interpol', config_bary_interpol)
-      call mpas_pool_get_config(configs, 'config_consist_perp', config_consist_perp)
 
 
       call mpas_pool_get_array(state, 'theta_m', theta_m, time_lev)
@@ -4086,12 +4139,10 @@ module atm_time_integration
 
 
       !PXT initialize weights
-	   if(config_consistent_scheme) then
-	      print*,  config_consistent_scheme
-        print*,  config_KE_vecrecon_perot
-        print*,  config_KE_vecrecon_rbf
-        print*,  config_bary_interpol
-        print*, config_consist_perp
+	   if(config_consistent_scheme .or. config_bary_interpol) then
+	      write(0,*) "Using barycentric coordinates scalar interpolation"
+	      write(0,*) " Consistent Scheme:", config_consistent_scheme
+	      write(0,*) " Bary interpol", config_bary_interpol
 
       	call mpas_init_barycentric_coefs(mesh)
      end if

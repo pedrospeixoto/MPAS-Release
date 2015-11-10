@@ -25,12 +25,12 @@
     config_monotonic = false
     config_epssm = 0.1
     config_smdiv = 0.1
-    config_consistent_scheme = true
-    config_KE_vecrecon_perot = true
-    config_KE_vecrecon_rbf = true
-    config_bary_interpol = true
-    config_consist_perp = true
-    
+    config_consistent_scheme = false
+    config_KE_vecrecon_perot = false
+    config_KE_vecrecon_rbf = false
+    config_bary_interpol = false
+    config_consist_perp = false
+    config_holingsworth = true
 /
 
 &damping
