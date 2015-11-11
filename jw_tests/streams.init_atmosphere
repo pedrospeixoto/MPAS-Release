@@ -6,7 +6,7 @@
 
 <immutable_stream name="output"
                   type="output"
-                  filename_template="x1.2562.init.jw1.nc"
+                  filename_template="x1.2562.hcm.init.jw1.nc"
                   packages="initial_conds"
                   output_interval="initial_only"
                   clobber_mode="replace_files"

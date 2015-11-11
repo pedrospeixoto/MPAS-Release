@@ -179,10 +179,10 @@ module mpas_vector_reconstruction
     real (kind=RKIND), dimension(:,:), intent(out) :: uReconstructMeridional !< Output: Meridional Component of velocity reconstructed to cell centers
 
     !   temporary arrays needed in the compute procedure
-    integer, pointer :: nCellsSolve
+    integer, pointer :: nCellsSolve, nVertLevels
     integer, dimension(:,:), pointer :: edgesOnCell
     integer, dimension(:), pointer :: nEdgesOnCell
-    integer :: iCell,iEdge, i
+    integer :: iCell,iEdge, i, k
     real(kind=RKIND), dimension(:), pointer :: latCell, lonCell
 
     real (kind=RKIND), dimension(:,:,:), pointer :: coeffs_reconstruct
@@ -205,6 +205,8 @@ module mpas_vector_reconstruction
 
     call mpas_pool_get_config(meshPool, 'on_a_sphere', on_a_sphere)
 
+    call mpas_pool_get_dimension(meshPool, 'nVertLevels', nVertLevels)
+
     ! init the intent(out)
     uReconstructX = 0.0
     uReconstructY = 0.0
@@ -224,6 +226,10 @@ module mpas_vector_reconstruction
           + coeffs_reconstruct(3,i,iCell) * u(:,iEdge)
 
       enddo
+      !PXT - Debug - used only for comparison with perot
+      do k = 1,nVertLevels
+         print*, iCell, k, uReconstructX(k,iCell), uReconstructY(k,iCell), uReconstructZ(k,iCell)
+      end do
     enddo   ! iCell
 
     if (on_a_sphere) then

@@ -36,11 +36,11 @@ module mpas_consistent
 !
 !  routine mpas_reconstruct_2d
 !
-!> \brief   2d MPAS Vector reconstruction routine
-!> \author  Xylar Asay-Davis, Todd Ringler
-!> \date    03/28/13
+!> \brief   2d MPAS Vector reconstruction routine using Perot scheme
+!> \author  Pedro S. Peixoto
+!> \date    11/11/15
 !> \details
-!>  Purpose: reconstruct vector field at cell centers based on radial basis functions
+!>  Purpose: reconstruct vector field at cell centers based on Perot's method (see Peixoto and Barros JCP 2014)
 !>  Input: grid meta data and vector component data residing at cell edges
 !>  Output: reconstructed vector field (measured in X,Y,Z) located at cell centers
 !-----------------------------------------------------------------------
@@ -57,26 +57,48 @@ module mpas_consistent
     real (kind=RKIND), dimension(:,:), intent(out) :: uReconstructMeridional !< Output: Meridional Component of velocity reconstructed to cell centers
 
     !   temporary arrays needed in the compute procedure
-    integer, pointer :: nCellsSolve
+    integer, pointer :: nCellsSolve, nEdgesSolve, nVertLevels, nEdges
     integer, dimension(:,:), pointer :: edgesOnCell
+    integer, dimension(:,:), pointer :: cellsOnEdge
     integer, dimension(:), pointer :: nEdgesOnCell
-    integer :: iCell,iEdge, i
+    real (kind=RKIND), dimension(:), pointer :: dvEdge, areaCell
+
+
+    integer :: iCell, iEdge, i, k, cell1, cell2
     real(kind=RKIND), dimension(:), pointer :: latCell, lonCell
 
     real (kind=RKIND), dimension(:,:,:), pointer :: coeffs_reconstruct
 
     logical, pointer :: on_a_sphere
 
-    real (kind=RKIND) :: clat, slat, clon, slon
+    real (kind=RKIND) :: clat, slat, clon, slon, r, x_proj, y_proj, z_proj
 
+    !Temporary Edge and Cell xyz posistion
+    !real (kind=RKIND), dimension(1:3) :: xyzEdge, xyzCell1,xyzCell2
+    real(kind=RKIND), dimension(:), pointer :: xCell, yCell, zCell, xEdge, yEdge, zEdge
+
+    call mpas_pool_get_array(meshPool, 'xCell', xCell)
+    call mpas_pool_get_array(meshPool, 'yCell', yCell)
+    call mpas_pool_get_array(meshPool, 'zCell', zCell)
+    call mpas_pool_get_array(meshPool, 'xEdge', xEdge)
+    call mpas_pool_get_array(meshPool, 'yEdge', yEdge)
+    call mpas_pool_get_array(meshPool, 'zEdge', zEdge)
+
+    call mpas_pool_get_dimension(meshPool, 'nVertLevels', nVertLevels)
+    call mpas_pool_get_array(meshPool, 'cellsOnEdge', cellsOnEdge)
+    call mpas_pool_get_array(meshPool, 'dvEdge', dvEdge)
+    call mpas_pool_get_array(meshPool, 'areaCell', areaCell)
 
     ! stored arrays used during compute procedure
     call mpas_pool_get_array(meshPool, 'coeffs_reconstruct', coeffs_reconstruct)
 
     ! temporary variables
+
     call mpas_pool_get_array(meshPool, 'nEdgesOnCell', nEdgesOnCell)
     call mpas_pool_get_array(meshPool, 'edgesOnCell', edgesOnCell)
+    call mpas_pool_get_dimension(meshPool, 'nEdges', nEdges)
     call mpas_pool_get_dimension(meshPool, 'nCellsSolve', nCellsSolve)
+    call mpas_pool_get_dimension(meshPool, 'nEdgesSolve', nEdgesSolve)
 
     call mpas_pool_get_array(meshPool, 'latCell', latCell)
     call mpas_pool_get_array(meshPool, 'lonCell', lonCell)
@@ -88,21 +110,45 @@ module mpas_consistent
     uReconstructY = 0.0
     uReconstructZ = 0.0
 
-    ! loop over cell centers
-    do iCell = 1, nCellsSolve
-      ! a more efficient reconstruction where rbf_values*matrix_reconstruct has been precomputed
-      ! in coeffs_reconstruct
-      do i=1,nEdgesOnCell(iCell)
-        iEdge = edgesOnCell(i,iCell)
-        uReconstructX(:,iCell) = uReconstructX(:,iCell) &
-          + coeffs_reconstruct(1,i,iCell) * u(:,iEdge)
-        uReconstructY(:,iCell) = uReconstructY(:,iCell) &
-          + coeffs_reconstruct(2,i,iCell) * u(:,iEdge)
-        uReconstructZ(:,iCell) = uReconstructZ(:,iCell) &
-          + coeffs_reconstruct(3,i,iCell) * u(:,iEdge)
+    !Apply reconstruction in a similar way as the divergence calculation
+    do iEdge=1,nEdgesSolve !PXT? - Not sure if necessary  nEdgesSolve or if nEdges is enough
+       cell1 = cellsOnEdge(1,iEdge)
+       cell2 = cellsOnEdge(2,iEdge)
+       do k=1,nVertLevels
+         uReconstructX(k,cell1) = uReconstructX(k,cell1) + u(k,iEdge)*dvEdge(iEdge)*(xEdge(iEdge)-xCell(cell1))
+         uReconstructY(k,cell1) = uReconstructY(k,cell1) + u(k,iEdge)*dvEdge(iEdge)*(yEdge(iEdge)-yCell(cell1))
+         uReconstructZ(k,cell1) = uReconstructZ(k,cell1) + u(k,iEdge)*dvEdge(iEdge)*(zEdge(iEdge)-zCell(cell1))
 
-      enddo
-    enddo   ! iCell
+         uReconstructX(k,cell2) = uReconstructX(k,cell2) - u(k,iEdge)*dvEdge(iEdge)*(xEdge(iEdge)-xCell(cell2))
+         uReconstructY(k,cell2) = uReconstructY(k,cell2) - u(k,iEdge)*dvEdge(iEdge)*(yEdge(iEdge)-yCell(cell2))
+         uReconstructZ(k,cell2) = uReconstructZ(k,cell2) - u(k,iEdge)*dvEdge(iEdge)*(zEdge(iEdge)-zCell(cell2))
+        !print*, iEdge, k, cell1, uReconstructX(k,cell1), uReconstructY(k,cell1), uReconstructZ(k,cell1)
+        !print*, iEdge, k, cell2, uReconstructX(k,cell2), uReconstructY(k,cell2), uReconstructZ(k,cell2)
+       end do
+    end do
+
+    !print*
+    !print*
+    !Normalize vector and project to the sphere
+    do iCell = 1,nCellsSolve
+       r = 1.0 / areaCell(iCell)
+       do k = 1,nVertLevels
+         uReconstructX(k,iCell) = uReconstructX(k,iCell) * r
+         uReconstructY(k,iCell) = uReconstructY(k,iCell) * r
+         uReconstructZ(k,iCell) = uReconstructZ(k,iCell) * r
+         !Project to be tangent to the sphere
+         call proj_vec_sphere(uReconstructX(k,iCell), uReconstructY(k,iCell), uReconstructZ(k,iCell), &
+                              xCell(iCell), yCell(iCell), zCell(iCell), &
+                              x_proj, y_proj, z_proj)
+        uReconstructX(k,iCell)=x_proj
+        uReconstructY(k,iCell)=y_proj
+        uReconstructZ(k,iCell)=z_proj
+        print*, iCell, k, uReconstructX(k,iCell), uReconstructY(k,iCell), uReconstructZ(k,iCell)
+       end do
+
+    end do
+    !print*, "Done"
+    !print*
 
     if (on_a_sphere) then
       do iCell = 1, nCellsSolve
@@ -215,7 +261,7 @@ module mpas_consistent
 
 !***********************************************************************
 !
-!  routine mpas_initialize_vectors_general
+!  routine mpas_initialize_vectors_general  NOT IN USE!!! Equivalent to mpas_initialize_vectors
 !
 !> \brief   MPAS initialization routine for vector
 !> \author  Pedro Peixoto
@@ -224,6 +270,10 @@ module mpas_consistent
 !> This routine computes geometric fields that will be potentially useful for calling
 !> the interpolation routines. It is general in the sense that it allows correct calculation when
 !> the grid is HCm (velocities given at the midpoint of Voronoi edges)
+!>
+!> Important: In the case of HCt grids, this is exactly equivalent to the routine mpas_initialize_vectors
+!>            This routine can be optimized since unnecessary calculations were made just to ensure
+!>              that the orientation of the normals agree with versions 4.0 of MPAS
 !>
 !> Input: the mesh
 !> Output:
@@ -250,6 +300,13 @@ module mpas_consistent
     real(kind=RKIND) :: normalDotRHat
     logical, pointer :: on_a_sphere
 
+    !PXT add
+    !integer, dimension(:,:), pointer :: cellsOnEdge, verticesOnEdge, edgesOnCell
+    integer :: vert1, vert2, numNormalChanges
+    real(kind=RKIND), dimension(:), pointer :: xVertex, yVertex, zVertex
+    real(kind=RKIND), dimension(1:3) :: xyzVertex1, xyzVertex2, edgeNormalTmp
+
+
     call mpas_pool_get_config(meshPool, 'on_a_sphere', on_a_sphere)
 
     call mpas_pool_get_array(meshPool, 'xCell', xCell)
@@ -268,6 +325,10 @@ module mpas_consistent
     call mpas_pool_get_array(meshPool, 'localVerticalUnitVectors', localVerticalUnitVectors)
     call mpas_pool_get_array(meshPool, 'edgeNormalVectors', edgeNormalVectors)
     call mpas_pool_get_array(meshPool, 'cellTangentPlane', cellTangentPlane)
+
+    call mpas_pool_get_array(meshPool, 'xVertex', xVertex)
+    call mpas_pool_get_array(meshPool, 'yVertex', yVertex)
+    call mpas_pool_get_array(meshPool, 'zVertex', zVertex)
 
     ! init arrays
     edgeNormalVectors = 0
@@ -288,6 +349,7 @@ module mpas_consistent
     ! Initialize normal unit vectors at each edge
     ! These vectors point from cell to cell.
     ! At boundaries, one cell does not exist, so it points from cell to edge.
+    !PXT- These are normal with repsct to HCt grid (midpoint of triangle edges)
     do iEdge = 1,nEdges
       cell1 = cellsOnEdge(1,iEdge)
       cell2 = cellsOnEdge(2,iEdge)
@@ -314,6 +376,50 @@ module mpas_consistent
       endif
       call mpas_unit_vec_in_r3(edgeNormalVectors(:,iEdge))
     end do
+
+    !PXT - Normal with respect to HCm grid, midpoint of actual Voronoi edges
+    numNormalChanges=0
+    do iEdge = 1,nEdges
+      !Vertices on edge
+      vert1 = verticesOnEdge(1,iEdge)
+      vert2 = verticesOnEdge(2,iEdge)
+      xyzVertex1(1) = xVertex(vert1)
+      xyzVertex1(2) = yVertex(vert1)
+      xyzVertex1(3) = zVertex(vert1)
+      xyzVertex2(1) = xVertex(vert2)
+      xyzVertex2(2) = yVertex(vert2)
+      xyzVertex2(3) = zVertex(vert2)
+
+      !cell1 = cellsOnEdge(1,iEdge)
+      !cell2 = cellsOnEdge(2,iEdge)
+
+
+      !Normal points to the left of edge formed as Vertex2 ---> Vertex1
+      edgeNormalTmp =  cross_product(xyzVertex2, xyzVertex1)
+      call mpas_unit_vec_in_r3(edgeNormalTmp)
+
+       !This normal should always agree with the edgeNormalVectors in case of HCt grid
+       ! But to be sure (in case a different grid structure is read) we perform an
+       !  additional check
+
+       print*, iEdge
+       print*, "Original:", edgeNormalVectors(:,iEdge)
+       print*, "New:     ", edgeNormalTmp
+       print*, "Error:   ", sqrt(dot_product(edgeNormalTmp-edgeNormalVectors(:,iEdge), edgeNormalTmp-edgeNormalVectors(:,iEdge) ))
+       print*, "Product: ", dot_product(edgeNormalVectors(:,iEdge), edgeNormalTmp)
+       if(dot_product(edgeNormalVectors(:,iEdge), edgeNormalTmp) < 0) then
+         !Change orientation of normal to match previous version method used in MPAS
+         !  Should never be necessary
+         edgeNormalTmp=-edgeNormalTmp
+         numNormalChanges=numNormalChanges+1
+       end if
+       edgeNormalVectors(:,iEdge)=edgeNormalTmp
+    end do
+
+    !Warning in case changes were necessary
+    if(numNormalChanges>0)then
+      write(0,*) " WARNING: Needed to change normal vector orientation ", numNormalChanges
+    end if
 
     do iCell=1,nCells
       iEdge = edgesOnCell(1,iCell)
@@ -448,6 +554,51 @@ module mpas_consistent
 
   end subroutine mpas_init_barycentric_coefs!}}}
 
+  subroutine proj_vec_sphere(vx, vy, vz, px, py, pz, wx, wy, wz)
+    !-----------------------------------------------------------
+    !  Projects a vector 'v' on the plane tangent to a sphere
+    !   Uses the the tangent plane relative to the unit sphere's
+    !   point 'p', in cartesian coords
+    !  Output in 'w'
+    !-----------------------------------------------------------
+    real (kind=RKIND), intent(in) :: vx, vy, vz
+    real (kind=RKIND), intent(in) :: px, py, pz
+    real (kind=RKIND), intent(out) :: wx, wy, wz
+    real (kind=RKIND), dimension(1:3) :: v, p, w
+
+    !Init
+    v(1)=vx
+    v(2)=vy
+    v(3)=vz
+    p(1)=px
+    p(2)=py
+    p(3)=pz
+    w=0
+    p=p/norm(p)
+    !Project to the plane tangent to the sphere
+    w(1:3)=v(1:3)-dot_product(v,p)*p(1:3)
+
+    !Output
+    wx=w(1)
+    wy=w(2)
+    wz=w(3)
+
+    return
+  end subroutine proj_vec_sphere
+
+  function norm(p)
+    !-----------------------------------------
+    ! NORM
+    ! Calculates the euclidian norm of a vector
+    !----------------------------------------------
+    real(kind=RKIND), intent(in) :: p(:)
+    real(kind=RKIND):: norm
+
+    norm=dot_product( p, p)
+    norm=dsqrt(norm)
+
+    return
+  end function norm
 
    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
    ! FUNCTION ARC_LENGTH

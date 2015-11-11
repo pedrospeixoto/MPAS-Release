@@ -19,7 +19,9 @@ module init_atm_cases
    use mpas_timer
    use mpas_init_atm_static
    use mpas_init_atm_surface
-   use mpas_init_consistent_scheme
+
+   !PXT - module to convert to HCm grid
+   use mpas_init_hcm_grid
 
    ! Added only clause to keep xlf90 from getting confused from the overloaded abs intrinsic in mpas_timekeeping
    use mpas_timekeeping !, only: MPAS_Time_type, MPAS_TimeInterval_type, MPAS_Clock_type, &
@@ -59,8 +61,9 @@ module init_atm_cases
       integer, pointer :: config_init_case
       logical, pointer :: config_static_interp
       logical, pointer :: config_met_interp
-      logical, pointer :: config_use_consitent_scheme
-      logical, pointer :: config_use_hcm_staggering
+
+      !PXT - config to use HCm grid - use midpoint of Voronoi edges instead of midpoint of Triangle edges
+      logical, pointer :: config_hcm_staggering
 
       character(len=StrKIND), pointer :: mminlu
 
@@ -71,8 +74,9 @@ module init_atm_cases
 
 
       call mpas_pool_get_config(domain % blocklist % configs, 'config_init_case', config_init_case)
-      call mpas_pool_get_config(domain % blocklist % configs, 'config_use_consitent_scheme', config_use_consitent_scheme)
-      call mpas_pool_get_config(domain % blocklist % configs, 'config_use_hcm_staggering', config_use_hcm_staggering)
+
+      !PXT - config to use HCm grid - use midpoint of Voronoi edges instead of midpoint of Triangle edges
+      call mpas_pool_get_config(domain % blocklist % configs, 'config_hcm_staggering', config_hcm_staggering)
 
       !
       ! Do some quick checks to make sure compile options are compatible with the chosen test case
@@ -120,11 +124,11 @@ module init_atm_cases
             call mpas_pool_get_dimension(block_ptr % dimensions, 'nCells', nCells)
             call mpas_pool_get_dimension(block_ptr % dimensions, 'nVertLevels', nVertLevels)
 
-		 	!Configure grid for modified/consistent scheme
-		 	if(config_use_hcm_staggering)then
-		 		print*, "Converting grid to HCm staggering"
-		 		call convert_grid_to_hcm(mesh)
-		 	endif
+		 	      !Configure grid for modified/consistent scheme
+		 	      if(config_hcm_staggering)then
+		 		      write(0,*), " Converting grid to HCm staggering (config_hcm_staggering=", config_hcm_staggering, ")"
+		 		      call convert_grid_to_hcm(mesh)
+		 	      endif
 
             write(0,*) ' calling test case setup '
             call init_atm_case_jw(mesh, nCells, nVertLevels, state, diag, block_ptr % configs, config_init_case)

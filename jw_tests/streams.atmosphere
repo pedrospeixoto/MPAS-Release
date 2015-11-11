@@ -2,7 +2,7 @@
 
 <immutable_stream name="input"
                   type="input"
-                  filename_template="x1.2562.init.jw1.nc"
+                  filename_template="x1.2562.hcm.init.jw1.nc"
                   input_interval="initial_only"/>
 
 <immutable_stream name="restart"

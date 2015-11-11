@@ -261,7 +261,7 @@ module atm_core
          invAreaCell(iCell) = 1.0_RKIND / areaCell(iCell)
       end do
 
-      !PXT - Initialize the mesh for the consistent scheme
+      !PXT - Warning to usage of consistent scheme
   	  if(config_consistent_scheme)then
   	      write(0,*)
 	  	  	write(0,*) "WARNING: The consistent scheme should be used with HCm staggering"
@@ -273,20 +273,18 @@ module atm_core
          call atm_init_coupled_diagnostics( state, 1, diag, mesh, block % configs)
       end if
 
-      !PXT - General vector initialization - modified to allow HCm grids
-      !        Initialize vectors - normal/tangent to edges
-      call mpas_initialize_vectors_general(mesh)
-
-      !PXT - The RBF reconstruction initialization was moved here as it is needed for
+      !PXT - The RBF reconstruction and vector initialization was moved here as it is needed for
       !      the diagonstics calculation
 
-      !PXT - This was commented as it is already equivalent to calling mpas_initialize_vectors_general
-      !call mpas_rbf_interp_initialize(mesh)
+      !PXT - This step is necessary for perot as well, it has to be clear that
+      !    this is necesary even for non RBF methods
+      !    Alternative: call directly call mpas_initialize_vectors(mesh) - need to add use mpas_vector_operations
+      call mpas_rbf_interp_initialize(mesh)
 
       !Pre-calculate RBF weights
       call mpas_init_reconstruct(mesh)
 
-      !This was moved to inside the solve_diagnostics
+      !PXT - This was moved to inside the solve_diagnostics
       !call mpas_pool_get_array(state, 'u', u, 1)
       !call mpas_pool_get_array(diag, 'uReconstructX', uReconstructX)
       !call mpas_pool_get_array(diag, 'uReconstructY', uReconstructY)
