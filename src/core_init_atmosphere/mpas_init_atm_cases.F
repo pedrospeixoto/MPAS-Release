@@ -126,7 +126,7 @@ module init_atm_cases
 
 		 	      !Configure grid for modified/consistent scheme
 		 	      if(config_hcm_staggering)then
-		 		      write(0,*), " Converting grid to HCm staggering (config_hcm_staggering=", config_hcm_staggering, ")"
+		 		      write(0,*) " Converting grid to HCm staggering (config_hcm_staggering=", config_hcm_staggering, ")"
 		 		      call convert_grid_to_hcm(mesh)
 		 	      endif
 
@@ -1053,6 +1053,7 @@ module init_atm_cases
       !
       ! Compute mass fluxes tangential to each edge (i.e., through the faces of dual grid cells)
       !
+      !PXT - This will be overwritten in the model run !
       v(:,:) = 0.0
       do iEdge = 1, nEdges
          do i=1,nEdgesOnEdge(iEdge)

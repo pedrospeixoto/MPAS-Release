@@ -165,6 +165,9 @@ module mpas_vector_reconstruction
 !>  Purpose: reconstruct vector field at cell centers based on radial basis functions
 !>  Input: grid meta data and vector component data residing at cell edges
 !>  Output: reconstructed vector field (measured in X,Y,Z) located at cell centers
+!>
+!> PXT - NOTE: Does not calculate the reconstruction for halo cells, even if nCells used insted of nCellsSolve
+!>              No changes made
 !-----------------------------------------------------------------------
   subroutine mpas_reconstruct_2d(meshPool, u, uReconstructX, uReconstructY, uReconstructZ, uReconstructZonal, uReconstructMeridional)!{{{
 
@@ -191,6 +194,8 @@ module mpas_vector_reconstruction
 
     real (kind=RKIND) :: clat, slat, clon, slon
 
+    !PXT - Added
+    !integer, pointer :: nCells
 
     ! stored arrays used during compute procedure
     call mpas_pool_get_array(meshPool, 'coeffs_reconstruct', coeffs_reconstruct)
@@ -199,6 +204,9 @@ module mpas_vector_reconstruction
     call mpas_pool_get_array(meshPool, 'nEdgesOnCell', nEdgesOnCell)
     call mpas_pool_get_array(meshPool, 'edgesOnCell', edgesOnCell)
     call mpas_pool_get_dimension(meshPool, 'nCellsSolve', nCellsSolve)
+
+    !PXT - Added
+    !call mpas_pool_get_dimension(meshPool, 'nCells', nCells)
 
     call mpas_pool_get_array(meshPool, 'latCell', latCell)
     call mpas_pool_get_array(meshPool, 'lonCell', lonCell)
@@ -211,9 +219,9 @@ module mpas_vector_reconstruction
     uReconstructX = 0.0
     uReconstructY = 0.0
     uReconstructZ = 0.0
-
+    !print*, nCellsSolve, nCells
     ! loop over cell centers
-    do iCell = 1, nCellsSolve
+    do iCell = 1, nCellsSolve   !PXT - Original had nCellsSolve
       ! a more efficient reconstruction where rbf_values*matrix_reconstruct has been precomputed
       ! in coeffs_reconstruct
       do i=1,nEdgesOnCell(iCell)
@@ -227,13 +235,13 @@ module mpas_vector_reconstruction
 
       enddo
       !PXT - Debug - used only for comparison with perot
-      do k = 1,nVertLevels
-         print*, iCell, k, uReconstructX(k,iCell), uReconstructY(k,iCell), uReconstructZ(k,iCell)
-      end do
+      !do k = 1,nVertLevels
+      !  print*, iCell, nCells, nCellsSolve,  k, uReconstructX(k,iCell), uReconstructY(k,iCell), uReconstructZ(k,iCell), coeffs_reconstruct(1,1,iCell), coeffs_reconstruct(2,1,iCell), coeffs_reconstruct(3,1,iCell)
+      !end do
     enddo   ! iCell
 
     if (on_a_sphere) then
-      do iCell = 1, nCellsSolve
+      do iCell = 1, nCellsSolve   !PXT - Original had nCellsSolve
         clat = cos(latCell(iCell))
         slat = sin(latCell(iCell))
         clon = cos(lonCell(iCell))
