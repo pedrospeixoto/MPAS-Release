@@ -72,10 +72,11 @@
                 <nml_option name="config_h_ScaleWithMesh"            type="logical"       default_value="true"/>
                 <nml_option name="config_num_halos"                  type="integer"       default_value="2"           in_defaults="false"/>
                 <nml_option name="config_consistent_scheme"          type="logical"       default_value="false"/>
+                <nml_option name="config_hcm_staggering"             type="logical"       default_value="false"/>
                 <nml_option name="config_KE_vecrecon_perot"          type="logical"       default_value="false"/>
                 <nml_option name="config_KE_vecrecon_rbf"            type="logical"       default_value="false"/>
                 <nml_option name="config_bary_interpol_edge"         type="logical"       default_value="false"/>
-                <nml_option name="config_bary_interpol_tri"          type="logical"       default_value="false"/>
+                <nml_option name="config_bary_interpol_vertex"       type="logical"       default_value="false"/>
                 <nml_option name="config_consist_perp"               type="logical"       default_value="false"/>
                 <nml_option name="config_hollingsworth"              type="logical"       default_value="true"/>
         </nml_record>

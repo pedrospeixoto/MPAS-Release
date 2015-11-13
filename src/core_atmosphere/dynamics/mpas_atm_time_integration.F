@@ -2523,6 +2523,10 @@ module atm_time_integration
       real (kind=RKIND), pointer :: config_visc4_2dsmag
       real (kind=RKIND), pointer :: config_len_disp
 
+      !PXT additional flags
+      logical, pointer :: config_consistent_scheme
+      logical, pointer :: config_consist_perp
+
       real (kind=RKIND) :: flux3, flux4
       real (kind=RKIND) :: q_im2, q_im1, q_i, q_ip1, ua, coef3
 
@@ -2649,6 +2653,9 @@ module atm_time_integration
       call mpas_pool_get_array(mesh, 'cf2', cf2)
       call mpas_pool_get_array(mesh, 'cf3', cf3)
 
+      !PXT - added flags
+      call mpas_pool_get_config(configs, 'config_consistent_scheme', config_consistent_scheme)
+      call mpas_pool_get_config(configs, 'config_consist_perp', config_consist_perp)
 
       prandtl_inv = 1.0_RKIND/prandtl
 
@@ -2705,7 +2712,6 @@ module atm_time_integration
       h_divergence(:,:) = 0.
 
       ! accumulate horizontal mass-flux
-	  !PXT - divergence uses ru, which needs fixing
       do iEdge=1,nEdges
          cell1 = cellsOnEdge(1,iEdge)
          cell2 = cellsOnEdge(2,iEdge)
@@ -2744,7 +2750,7 @@ module atm_time_integration
          cell2 = cellsOnEdge(2,iEdge)
 
          ! horizontal pressure gradient 
-
+         !PXT - Default = false
          if (newpx)  then
 
             k = 1
@@ -2803,12 +2809,14 @@ module atm_time_integration
          if (config_u_vadv_order == 2) then
 
             do k=2,nVertLevels
+               !PXT - this could be done with barycentric interpol on HCm grids (necessary?)
                wduz(k) = 0.5*(rw(k,cell1)+rw(k,cell2))*(fzm(k)*u(k,iEdge)+fzp(k)*u(k-1,iEdge))
             end do
 
          else if (config_u_vadv_order == 3) then
 
             k = 2
+            !PXT - this could be done with barycentric interpol on HCm grids (necessary?)
             wduz(k) =  0.5*( rw(k,cell1)+rw(k,cell2))*(fzm(k)*u(k,iEdge)+fzp(k)*u(k-1,iEdge))
             do k=3,nVertLevels-1
                wduz(k) = flux3( u(k-2,iEdge),u(k-1,iEdge),u(k,iEdge),u(k+1,iEdge),0.5*(rw(k,cell1)+rw(k,cell2)), 1.0_RKIND )
@@ -2819,6 +2827,7 @@ module atm_time_integration
          else if (config_u_vadv_order == 4) then
 
             k = 2
+            !PXT - this could be done with barycentric interpol on HCm grids (necessary?)
             wduz(k) =  0.5*( rw(k,cell1)+rw(k,cell2))*(fzm(k)*u(k,iEdge)+fzp(k)*u(k-1,iEdge))
             do k=3,nVertLevels-1
                wduz(k) = flux4( u(k-2,iEdge),u(k-1,iEdge),u(k,iEdge),u(k+1,iEdge),0.5*(rw(k,cell1)+rw(k,cell2)))
@@ -2834,15 +2843,36 @@ module atm_time_integration
          end do
 
          ! Next, nonlinear Coriolis term (q) following Ringler et al JCP 2009
+         !PXT- Use perot style reconstruction TODO
+         if(config_consist_perp .or. config_consistent_scheme)then
+            !call mpas_tang_vel_comp(mesh, u, uReconstructX, uReconstructY, uReconstructZ, v)
+            print*
+            print*, iEdge
+            print*, edgesOnEdge(1:nEdgesOnEdge(iEdge),iEdge)
+            print*, cellsOnEdge(1,iEdge), cellsOnEdge(2,iEdge)
+            print*, edgesOnCell(1:nEdgesOnCell(cellsOnEdge(1,iEdge)),cellsOnEdge(1,iEdge)), &
+              edgesOnCell(1:nEdgesOnCell(cellsOnEdge(2,iEdge)),cellsOnEdge(2,iEdge))
 
-         q(:) = 0.0
-         do j = 1,nEdgesOnEdge(iEdge)
-            eoe = edgesOnEdge(j,iEdge)
-            do k=1,nVertLevels
-               workpv = 0.5 * (pv_edge(k,iEdge) + pv_edge(k,eoe))
-               q(k) = q(k) + weightsOnEdge(j,iEdge) * u(k,eoe) * workpv * rho_edge(k,eoe)
-            end do
-         end do
+            q(:) = 0.0
+           do j = 1,nEdgesOnEdge(iEdge)
+              eoe = edgesOnEdge(j,iEdge)
+              do k=1,nVertLevels
+                 workpv = 0.5 * (pv_edge(k,iEdge) + pv_edge(k,eoe))
+                 q(k) = q(k) + weightsOnEdge(j,iEdge) * u(k,eoe) * workpv * rho_edge(k,eoe)
+                 !Not divided by dcEdge(iEdge) - will show up later
+              end do
+           end do
+         else
+	         q(:) = 0.0
+	         do j = 1,nEdgesOnEdge(iEdge)
+	            eoe = edgesOnEdge(j,iEdge)
+	            do k=1,nVertLevels
+	               workpv = 0.5 * (pv_edge(k,iEdge) + pv_edge(k,eoe))
+	               q(k) = q(k) + weightsOnEdge(j,iEdge) * u(k,eoe) * workpv * rho_edge(k,eoe)
+	               !Not divided by dcEdge(iEdge) - will show up later
+	            end do
+	         end do
+         end if
 
          do k=1,nVertLevels
 
@@ -3715,6 +3745,10 @@ module atm_time_integration
       real (kind=RKIND), dimension(:,:), pointer :: uReconstructX, uReconstructY, uReconstructZ, &
                                                     uReconstructZonal, uReconstructMeridional
 
+      !PXT - Added temp vars
+      real (kind=RKIND), dimension(1:3) :: bar_coefs
+      integer :: iCell1, iCell2, iCell3
+
       !PXT - This might become of no use for now, since this is now a parameter read from namelist (usefull for testing)
       logical, parameter :: hollingsworth=.true.
 
@@ -3727,7 +3761,7 @@ module atm_time_integration
       logical, pointer :: config_KE_vecrecon_perot
       logical, pointer :: config_KE_vecrecon_rbf
       logical, pointer :: config_bary_interpol_edge
-      logical, pointer :: config_bary_interpol_tri
+      logical, pointer :: config_bary_interpol_vertex
       logical, pointer :: config_consist_perp
       logical, pointer :: config_hollingsworth
 
@@ -3736,7 +3770,7 @@ module atm_time_integration
       call mpas_pool_get_config(configs, 'config_KE_vecrecon_perot', config_KE_vecrecon_perot)
       call mpas_pool_get_config(configs, 'config_KE_vecrecon_rbf', config_KE_vecrecon_rbf)
       call mpas_pool_get_config(configs, 'config_bary_interpol_edge', config_bary_interpol_edge)
-      call mpas_pool_get_config(configs, 'config_bary_interpol_tri', config_bary_interpol_tri)
+      call mpas_pool_get_config(configs, 'config_bary_interpol_vertex', config_bary_interpol_vertex)
       call mpas_pool_get_config(configs, 'config_consist_perp', config_consist_perp)
       call mpas_pool_get_config(configs, 'config_hollingsworth', config_hollingsworth)
 
@@ -3794,14 +3828,32 @@ module atm_time_integration
       !
       ! Compute height on cell edges at velocity locations
       !
-      !PXT - need to add barycentric interpolation here as well
-      do iEdge=1,nEdges
-         cell1 = cellsOnEdge(1,iEdge)
-         cell2 = cellsOnEdge(2,iEdge)
-         do k=1,nVertLevels
-            h_edge(k,iEdge) = 0.5 * (h(k,cell1) + h(k,cell2))
-         end do
-      end do
+      !PXT-Option for linear interpolation
+     ! With this method the h will always be second order accurate, even in distorted grids
+     if(config_bary_interpol_edge)then
+        do iEdge = 1, nEdges
+           !PXT - The barycentric coefficients should be pre-calculated for performance
+           call mpas_barycentric_coefs_edge(iEdge, mesh, iVertex, bar_coefs)
+           iCell1 = cellsOnVertex(1,iVertex)
+           iCell2 = cellsOnVertex(2,iVertex)
+           iCell3 = cellsOnVertex(3,iVertex)
+           do k=1,nVertLevels
+              !Barycentric interpolation
+              h_edge(k,iEdge) =  bar_coefs(1)*h(k,iCell1) + &
+                                 bar_coefs(2)*h(k,iCell2) + &
+                                 bar_coefs(3)*h(k,iCell3)
+           end do
+        end do
+      else
+        !Original method
+	      do iEdge=1,nEdges
+	         cell1 = cellsOnEdge(1,iEdge)
+	         cell2 = cellsOnEdge(2,iEdge)
+	         do k=1,nVertLevels
+	            h_edge(k,iEdge) = 0.5 * (h(k,cell1) + h(k,cell2))
+	         end do
+	      end do
+	    end if
 
 
       !
@@ -3860,7 +3912,7 @@ module atm_time_integration
         !   end do
         !end do
       else
-        !PXT - WARNING RBF do not calculate the reconstruction in the halo cells
+        !PXT - WARNING RBF does not calculate the reconstruction in the halo cells
         !      So this cannot be used to reconstruct velocity at edges!!!!
         !      But it is ok to calculate KE
         call mpas_reconstruct(mesh, u,                   &
@@ -3907,6 +3959,7 @@ module atm_time_integration
         end do
       end if
 
+      !PXT - added new config to control the usage from namelist
       if (hollingsworth .and. config_hollingsworth) then
 
          ! Compute ke at cell vertices - AG's new KE construction, part 1
@@ -3942,6 +3995,7 @@ module atm_time_integration
 
          ! Avoid FP errors caused by a potential division by zero below by 
          ! initializing the "garbage cell" of areaCell to a non-zero value
+         ! PXT - I think this is unnecessary, since in what follows the invAreaCell(iCell) is used
          areaCell(nCells+1) = 1.0
 
          do iVertex = 1, nVertices
@@ -3960,7 +4014,6 @@ module atm_time_integration
       ! Compute v (tangential) velocities following Thuburn et al JCP 2009
       !
       !PXT- Use perot style reconstruction
-      !    will need extra variables for this - allocate on the fly?
       v(:,:) = 0.0
       if(config_consist_perp .or. config_consistent_scheme)then
         !PXT - Interpolate reconstructed velocities to the edge
@@ -3993,18 +4046,52 @@ module atm_time_integration
       !
       ! Avoid dividing h_vertex by areaTriangle and move areaTriangle into
       ! numerator for the pv_vertex calculation
-      do iVertex = 1,nVertices
-         do k=1,nVertLevels
-            h_vertex = 0.0
-            do i=1,vertexDegree
-               !PXT - do linear interpolation here, with barycentric coords
-               ! Maybe I could use the kiteAreasOnVertex to store the weights (or use it as a template)
-               h_vertex = h_vertex + h(k,cellsOnVertex(i,iVertex)) * kiteAreasOnVertex(i,iVertex)
-            end do
-            pv_vertex(k,iVertex) = (fVertex(iVertex) + vorticity(k,iVertex)) * areaTriangle(iVertex) / h_vertex
-         end do
-      end do
 
+     !PXT-Option for linear interpolation
+     ! With this method the h_vertex will always be second order accurate, even in distorted grids
+     if(config_bary_interpol_vertex)then
+        !print*, "Bary interpol"
+        do iVertex = 1,nVertices
+           !PXT - The barycentric coefficients should be pre-calculated for performance
+           call mpas_barycentric_coefs_vertex(iVertex, mesh, bar_coefs)
+           do k=1,nVertLevels
+              h_vertex = 0.0
+              do i=1,vertexDegree
+                 h_vertex = h_vertex + h(k,cellsOnVertex(i,iVertex)) * bar_coefs(i)
+              end do
+              !Some halos are null, but will not be used later, so protect from errors
+              !  This can be optimized by changing the way the bary interpol deal with halos
+              if( abs(h_vertex)<10e-7)then
+                pv_vertex(k,iVertex)=0.0
+              else
+                pv_vertex(k,iVertex) = (fVertex(iVertex) + vorticity(k,iVertex)) / h_vertex
+              end if
+
+              !print*, iVertex, k, h_vertex, pv_vertex(k,iVertex), vorticity(k,iVertex)
+              !print*, h(k,cellsOnVertex(1,iVertex)), h(k,cellsOnVertex(2,iVertex)), h(k,cellsOnVertex(3,iVertex))
+              !print*, bar_coefs(1), bar_coefs(2), bar_coefs(3)
+              !print*
+           end do
+        end do
+      else
+        !Original method
+        !print*, "original"
+	      do iVertex = 1,nVertices
+	         do k=1,nVertLevels
+	            h_vertex = 0.0
+	            do i=1,vertexDegree
+	               h_vertex = h_vertex + h(k,cellsOnVertex(i,iVertex)) * kiteAreasOnVertex(i,iVertex)
+	            end do
+	            pv_vertex(k,iVertex) = (fVertex(iVertex) + vorticity(k,iVertex)) * areaTriangle(iVertex) / h_vertex
+
+	            !print*, iVertex, k, h_vertex, pv_vertex(k,iVertex), vorticity(k,iVertex)
+              !print*, h(k,cellsOnVertex(1,iVertex)), h(k,cellsOnVertex(2,iVertex)), h(k,cellsOnVertex(3,iVertex))
+              !print*, kiteAreasOnVertex(1,iVertex), kiteAreasOnVertex(2,iVertex), kiteAreasOnVertex(3,iVertex)
+              !print*
+
+	         end do
+	      end do
+      end if
 
       !
       ! Compute pv at the edges
@@ -4025,7 +4112,7 @@ module atm_time_integration
       ! Compute pv at cell centers
       !    ( this computes pv_cell for all real cells )
       !
-      !PXT - use barycentric interpolation
+      !PXT - use Wachspress coordinate interpolation - used only in APVM
       pv_cell(:,:) = 0.0
       do iVertex = 1, nVertices
          do i=1,vertexDegree
@@ -4082,18 +4169,15 @@ module atm_time_integration
       type (mpas_pool_type), intent(inout) :: mesh
       type (mpas_pool_type), intent(in) :: configs
 
-      integer :: k, iCell, iEdge, iCell1, iCell2, cell1, cell2, iVertex
+      integer :: k, iCell, iEdge, iCell1, iCell2, cell1, cell2
       real (kind=RKIND), pointer :: coef_3rd_order
       integer, pointer :: config_theta_adv_order
 
-      !PXT additional flags
-      logical, pointer :: config_consistent_scheme
+      !PXT - Required for barycentric interpol
       logical, pointer :: config_bary_interpol_edge
-      logical, pointer :: config_bary_interpol_tri
-      !PXT - barycentric interpolation coefficients (general purpose)
+      integer, dimension(:,:), pointer :: cellsOnVertex
       real (kind=RKIND), dimension(1:3) :: bar_coefs
-      !PXT - Distance between edge point and triangle edge midpoint (sanity check)
-      real (kind=RKIND) :: edgeDisp
+      integer :: iCell3, iVertex
 
       integer, pointer :: nCells, nEdges, nVertLevels
       integer, pointer :: index_qv
@@ -4123,19 +4207,20 @@ module atm_time_integration
 
       call mpas_pool_get_dimension(mesh, 'nCells', nCells)
       call mpas_pool_get_dimension(mesh, 'nEdges', nEdges)
+      !call mpas_pool_get_dimension(mesh, 'nVertices', nVertices)
       call mpas_pool_get_dimension(mesh, 'nVertLevels', nVertLevels)
       call mpas_pool_get_dimension(state, 'index_qv', index_qv)
 
       call mpas_pool_get_array(mesh, 'cellsOnEdge', cellsOnEdge)
 
-      call mpas_pool_get_config(configs, 'config_coef_3rd_order', coef_3rd_order)
-      call mpas_pool_get_config(configs, 'config_theta_adv_order', config_theta_adv_order)
+      !PXT - Required for barycentric interpol
+      call mpas_pool_get_array(mesh, 'cellsOnVertex', cellsOnVertex)
 
       !PXT additional flags
-      call mpas_pool_get_config(configs, 'config_consistent_scheme', config_consistent_scheme)
       call mpas_pool_get_config(configs, 'config_bary_interpol_edge', config_bary_interpol_edge)
-      call mpas_pool_get_config(configs, 'config_bary_interpol_tri', config_bary_interpol_tri)
 
+      call mpas_pool_get_config(configs, 'config_coef_3rd_order', coef_3rd_order)
+      call mpas_pool_get_config(configs, 'config_theta_adv_order', config_theta_adv_order)
 
       call mpas_pool_get_array(state, 'theta_m', theta_m, time_lev)
       call mpas_pool_get_array(diag, 'theta', theta)
@@ -4172,39 +4257,63 @@ module atm_time_integration
          end do
       end do
 
+	   !Flux calculation
+	   !PXT-Option for linear interpolation
+	   ! With this method the flux will always be second order accurate, even in distorted grids
+	   if(config_bary_interpol_edge)then
+        do iEdge = 1, nEdges
+           !PXT - The barycentric coefficients should be pre-calculated for performance
+           !        for now, we calculate on runtime
+           call mpas_barycentric_coefs_edge(iEdge, mesh, iVertex, bar_coefs)
+           iCell1 = cellsOnVertex(1,iVertex)
+           iCell2 = cellsOnVertex(2,iVertex)
+           iCell3 = cellsOnVertex(3,iVertex)
 
-      !PXT initialize weights
-	   if(config_consistent_scheme .or. config_bary_interpol_edge) then
-	      write(0,*) "Using barycentric coordinates scalar interpolation"
-	      write(0,*) " Consistent Scheme:", config_consistent_scheme
-	      write(0,*) " Bary interpol", config_bary_interpol_edge
-
-	      do iEdge = 1, nEdges
-          call mpas_barycentric_coefs_edge(iEdge, mesh, iVertex, bar_coefs,  edgeDisp) !{{{
-          print*, iEdge, iVertex, bar_coefs, edgeDisp
+           do k=1,nVertLevels
+              !iCell1 = cellsOnVertex(1,iVertex)
+              !iCell2 = cellsOnVertex(2,iVertex)
+              !iCell3 = cellsOnVertex(3,iVertex)
+              !Barycentric interpolation
+              ru(k,iEdge) =  u(k,iEdge) * &
+                            (bar_coefs(1)*rho_zz(k,iCell1) + &
+                             bar_coefs(2)*rho_zz(k,iCell2) + &
+                             bar_coefs(3)*rho_zz(k,iCell3))
+              !print*
+              !print*, "Edge:  ", iEdge, nEdges
+              !print*, "Cells  ", iCell1, iCell2, iCell3
+              !print*, "Values:", rho_zz(k,iCell1), rho_zz(k,iCell2), rho_zz(k,iCell3)
+              !print*, "Coef:  ", bar_coefs
+              !print*, "Interp:", ru(k,iEdge)
+              !diff=ru(k,iEdge)
+              !Original
+              !iCell1 = cellsOnEdge(1,iEdge)
+              !iCell2 = cellsOnEdge(2,iEdge)
+              !ru(k,iEdge) = 0.5 * u(k,iEdge) * (rho_zz(k,iCell1) + rho_zz(k,iCell2))
+              !diff=diff-ru(k,iEdge)
+              !print*
+              !print*, "Edge:  ", iEdge, nEdges
+              !print*, "Cells  ", iCell1, iCell2
+              !print*, "Values:", rho_zz(k,iCell1), rho_zz(k,iCell2)
+              !print*, "Interp:", ru(k,iEdge)
+              !print*, "Diff:  ", diff
+              !print*, "-----------------------------------------"
+           end do
         end do
-     end if
-
-	  !Flux calculation
-      do iEdge = 1, nEdges
-         iCell1 = cellsOnEdge(1,iEdge)
-         iCell2 = cellsOnEdge(2,iEdge)
-         do k=1,nVertLevels
-            ru(k,iEdge) = 0.5 * u(k,iEdge) * (rho_zz(k,iCell1) + rho_zz(k,iCell2))
-            !print*, iEdge, iCell1, iCell2, rho_zz(k,iCell1), rho_zz(k,iCell2)
-            !write(0,*), iEdge, k, ru(k, iEdge)
-            !PXT - change this to linear interpolation
-            ! ru(k,iEdge)=u(k,iEdge)*atm_linear_interp_edge(iEdge, rho_zz)
-            !     atm_linear_interp_edge calculates the barycentric coefficients
-            !     using the orthogonality this should be straighforward
-            !     but somethings would be more efficient if pre computed
-            ! Needs: area calculations and test if point lives in triangle
-         end do
-      end do
+     else
+        !Original interpolation
+	      do iEdge = 1, nEdges
+	         iCell1 = cellsOnEdge(1,iEdge)
+	         iCell2 = cellsOnEdge(2,iEdge)
+	         do k=1,nVertLevels
+	            ru(k,iEdge) = 0.5 * u(k,iEdge) * (rho_zz(k,iCell1) + rho_zz(k,iCell2))
+		       end do
+	      end do
+      end if
 
       ! Compute rw (i.e. rho_zz * omega) from rho_zz, w, and ru.
       ! We are reversing the procedure we use in subroutine atm_recover_large_step_variables.
       ! first, the piece that depends on w.
+      !PXT - ok - vertical only
       do iCell=1,nCells
          rw(1,iCell) = 0.0
          rw(nVertLevels+1,iCell) = 0.0

@@ -241,9 +241,6 @@ module atm_core
    
       logical, pointer :: config_do_restart, config_do_DAcycling
 
-      !PXT - consistent scheme config vars
-      logical, pointer :: config_consistent_scheme
-
       call mpas_pool_get_subpool(block % structs, 'diag', diag)
       call mpas_pool_get_subpool(block % structs, 'state', state)
 
@@ -254,20 +251,12 @@ module atm_core
       call mpas_pool_get_array(mesh, 'invAreaCell', invAreaCell)
       call mpas_pool_get_dimension(mesh, 'nCells', nCells)
 
-      !PXT - consistent scheme config vars
-      call mpas_pool_get_config(block % configs, 'config_consistent_scheme', config_consistent_scheme)
-
       do iCell=1,nCells 
          invAreaCell(iCell) = 1.0_RKIND / areaCell(iCell)
       end do
 
-      !PXT - Warning to usage of consistent scheme
-  	  if(config_consistent_scheme)then
-  	      write(0,*)
-	  	  	write(0,*) "WARNING: The consistent scheme should be used with HCm staggering"
-          write(0,*) "   run init_atmosphere with config_use_hcm_staggering=true"
-          write(0,*)
-      end if
+      !PXT - Check correct usage of consistent scheme and HCm grid
+      call mpas_verify_consist_config(mesh, block % configs)
 
       if (.not. config_do_restart .or. (config_do_restart .and. config_do_DAcycling)) then
          call atm_init_coupled_diagnostics( state, 1, diag, mesh, block % configs)

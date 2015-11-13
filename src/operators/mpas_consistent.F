@@ -22,16 +22,134 @@ module mpas_consistent
   private
 
   public :: mpas_barycentric_coefs_edge, &
+            mpas_barycentric_coefs_vertex, &
             mpas_initialize_vectors_general, &
             mpas_perot_reconstruct, &
-            mpas_tang_vel_comp
+            mpas_tang_vel_comp, &
+            mpas_verify_consist_config
 
-  interface mpas_perot_reconstruct
+  !interface mpas_perot_reconstruct
      !module procedure mpas_reconstruct_1d
-     module procedure mpas_reconstruct_2d
-  end interface
+  !   module procedure mpas_reconstruct_perot
+  !end interface
 
   contains
+
+!***********************************************************************
+!
+!  routine mpas_verify_stag
+!
+!> \brief   checks if the config_hcm_staggering matches the grid given in the initial
+!>           conditions
+!> \author  Pedro Peixoto
+!> \date    Nov 2015
+!> \details
+!>  Purpose: Prints a warning if namelist does not match grid staggering
+!>  Input: grid meta data and configs
+!>  Output: config_hcm_staggering=true/false - write warning
+!-----------------------------------------------------------------------
+  subroutine mpas_verify_consist_config(mesh, configs) !{{{
+
+      implicit none
+      type (mpas_pool_type), intent(in) :: mesh     !< Input: Mesh information
+      type (mpas_pool_type), intent(in) :: configs  !< Input: Configs information
+      integer :: i, iEdge, iCell1, iCell2
+      integer, pointer:: nEdges, nCells, nEdgesSolve, nCellsSolve
+      integer, dimension(:,:), pointer :: cellsOnEdge
+
+      real (kind=RKIND), pointer :: sphere_radius
+      real (kind=RKIND), dimension(:), pointer :: xCell, yCell, zCell
+      real (kind=RKIND), dimension(:), pointer :: xEdge, yEdge, zEdge
+      real (kind=RKIND), dimension(:), pointer :: dcEdge
+
+      logical, pointer :: on_a_sphere
+      logical, pointer :: config_consistent_scheme
+      logical, pointer :: config_hcm_staggering
+
+      real (kind=RKIND) :: xTrEdgeMidpoint, yTrEdgeMidpoint, zTrEdgeMidpoint, ptNorm
+      real (kind=RKIND) :: edgeDisp, edgeDispMax
+      real (kind=RKIND), dimension(1:3) :: p1, p2, p3, p
+
+      call mpas_pool_get_dimension(mesh, 'nEdges', nEdges)
+      call mpas_pool_get_dimension(mesh, 'nEdgesSolve', nEdgesSolve)
+      call mpas_pool_get_dimension(mesh, 'nCells', nCells)
+      call mpas_pool_get_dimension(mesh, 'nCellsSolve', nCellsSolve)
+      call mpas_pool_get_array(mesh, 'xCell', xCell)
+      call mpas_pool_get_array(mesh, 'yCell', yCell)
+      call mpas_pool_get_array(mesh, 'zCell', zCell)
+      call mpas_pool_get_array(mesh, 'xEdge', xEdge)
+      call mpas_pool_get_array(mesh, 'yEdge', yEdge)
+      call mpas_pool_get_array(mesh, 'zEdge', zEdge)
+      call mpas_pool_get_array(mesh, 'dcEdge', dcEdge)
+      call mpas_pool_get_array(mesh, 'cellsOnEdge', cellsOnEdge)
+      call mpas_pool_get_config(mesh, 'sphere_radius', sphere_radius)
+      call mpas_pool_get_config(mesh, 'on_a_sphere', on_a_sphere)
+
+      call mpas_pool_get_config(configs, 'config_consistent_scheme', config_consistent_scheme)
+      call mpas_pool_get_config(configs, 'config_hcm_staggering', config_hcm_staggering)
+
+      edgeDispMax=0.0
+      do iEdge=1, nEdges
+	      iCell1 = cellsOnEdge(1,iEdge)
+	      iCell2 = cellsOnEdge(2,iEdge)
+
+	      !Extreme halo case - improper to calculate here
+	      if(iCell1 > nCells .or. iCell2 > nCells)then
+	       cycle
+	      end if
+
+	      !Calculate midpoint of the triangle edge (the one that intersects the Voronoi cell edges
+	      ! There is no need to divide by 2 (average) because it is going to be nromalized anyway
+	      xTrEdgeMidpoint = xCell(iCell1) + xCell(iCell2)
+	      yTrEdgeMidpoint = yCell(iCell1) + yCell(iCell2)
+	      zTrEdgeMidpoint = zCell(iCell1) + zCell(iCell2)
+	      ptNorm= xTrEdgeMidpoint**2 + yTrEdgeMidpoint**2 + zTrEdgeMidpoint**2
+	      ptNorm=sqrt(ptNorm)
+	      if (on_a_sphere)then
+	        xTrEdgeMidpoint=sphere_radius*xTrEdgeMidpoint/ptNorm
+	        yTrEdgeMidpoint=sphere_radius*yTrEdgeMidpoint/ptNorm
+	        zTrEdgeMidpoint=sphere_radius*zTrEdgeMidpoint/ptNorm
+	      end if
+
+	      !Distance from edge point given in the mesh and the triangle edge midpoint
+	      !  (sanity check for HCm or HCt grid)
+	      edgeDisp=arc_length(xTrEdgeMidpoint, yTrEdgeMidpoint, zTrEdgeMidpoint, &
+	                          xEdge(iEdge),    yEdge(iEdge),    zEdge(iEdge))
+	      !Normalize edgeDisp
+	      edgeDisp=edgeDisp/dcEdge(iEdge)
+	      edgeDispMax=max(edgeDisp, edgeDispMax)
+      end do
+
+      !Write warnings
+      write(0,*)
+      if(edgeDispMax>0.000000001)then
+          if(.not.config_hcm_staggering)then
+            write(0,*) "WARNING: Inconsistent choice in namelist config_hcm_staggering =", config_hcm_staggering
+            write(0,*) "             but the initial data has HCm grid data !"
+          end if
+          config_hcm_staggering = .true.
+          write(0,*) "Using a HCm grid: velocities on the midpoint of Voronoi edges, not triangle edges"
+          write(0,*) "                  config_hcm_staggering=", config_hcm_staggering
+      else
+          if(config_hcm_staggering)then
+            write(0,*) "WARNING: Inconsistent choice in namelist config_hcm_staggering =", config_hcm_staggering
+            write(0,*) "             but the initial data has HCt grid data !"
+          end if
+          write(0,*) "Using a HCt grid: velocities on the midpoint of triangle edges, not Voronoi edges"
+          write(0,*) "                  config_hcm_staggering =", config_hcm_staggering
+          if(config_consistent_scheme)then
+            write(0,*) "WARNING: The consistent scheme has better results using the HCm staggering"
+            write(0,*) "          run init_atmosphere with config_use_hcm_staggering=true"
+          end if
+      end if
+
+      !On HCt grids there is no need to do barycenctric coordinate interpolation on edges
+      if(config_hcm_staggering) then
+        !config_bary_interpol_edge=.false.
+      end if
+
+      return
+  end subroutine mpas_verify_consist_config!}}}
 
 !***********************************************************************
 !
@@ -106,6 +224,77 @@ module mpas_consistent
 
 !***********************************************************************
 !
+!  routine mpas_perp_term
+!
+!> \brief   2d MPAS Vector reconstruction of the perpendicular term
+!> \author  Pedro S. Peixoto
+!> \date    11/11/15
+!> \details
+!>  Purpose: Calculate the term rho*pv*v for each edge using the scheme of Peixoto JCP (2015)
+!>  Input: grid meta data and data fields ru, pv_edge
+!>  Output: perpendicular term for this edge
+!>
+!> This routine can be highly optimized if edge weights are pre-computed
+!>
+!-----------------------------------------------------------------------
+!  subroutine mpas_perp_term(iEdge, kVert, meshPool, ru, pv_edge, q_perp)!{{{
+!
+!    implicit none
+!
+!    integer, intent(in) ::  iEdge, kVert          !< Input: Edge and vertical level
+!    type (mpas_pool_type), intent(in) :: meshPool !< Input: Mesh information
+!    real (kind=RKIND), dimension(:,:), intent(in) :: ru !< Input: Velocity field on edges
+!    real (kind=RKIND), dimension(:,:), intent(in) :: pv_edge !< Input: pv_edge
+!    real (kind=RKIND), dimension(:,:), intent(out) :: q_perp !< Output: perpendicular term
+!
+!    integer, pointer :: nCells, nCells
+!    integer, dimension(:,:), pointer :: cellsOnEdge
+!
+!    real(kind=RKIND), dimension(:), pointer :: xEdge, yEdge, zEdge
+!    real(kind=RKIND), dimension(:,:), pointer :: edgeNormalVectors
+!
+!
+!    integer :: iCell, iEdge, i, k, cell1, cell2
+!    real (kind=RKIND), dimension(1:3) :: vec_tmp, tang_vec, xyzEdge
+!
+!    call mpas_pool_get_dimension(meshPool, 'nVertLevels', nVertLevels)
+!    call mpas_pool_get_dimension(meshPool, 'nEdges', nEdges)
+!    call mpas_pool_get_dimension(meshPool, 'nEdgesSolve', nEdgesSolve)
+!
+!    call mpas_pool_get_array(meshPool, 'xEdge', xEdge)
+!    call mpas_pool_get_array(meshPool, 'yEdge', yEdge)
+!    call mpas_pool_get_array(meshPool, 'zEdge', zEdge)
+!    call mpas_pool_get_array(meshPool, 'cellsOnEdge', cellsOnEdge)
+!    call mpas_pool_get_array(meshPool, 'edgeNormalVectors', edgeNormalVectors)
+!
+!    v(:,:)=0
+!    !print*, "In tg recon"
+!    !Interpolate reconstructed velocities to the edge
+!    do iEdge = 1,nEdgesSolve !Can only do inner edges, because of halo
+!      cell1 = cellsOnEdge(1,iEdge)
+!      cell2 = cellsOnEdge(2,iEdge)
+!      xyzEdge(1)=xEdge(iEdge)
+!      xyzEdge(2)=yEdge(iEdge)
+!      xyzEdge(3)=zEdge(iEdge)
+!      do k=1,nVertLevels
+!        vec_tmp(1) = uReconstructX(k, cell1) + uReconstructX(k, cell2)
+!        vec_tmp(2) = uReconstructY(k, cell1) + uReconstructY(k, cell2)
+!        vec_tmp(3) = uReconstructZ(k, cell1) + uReconstructZ(k, cell2)
+!        vec_tmp = 0.5 * vec_tmp
+!
+!        !Project in the tangential direction
+!        call mpas_cross_product_in_r3(xyzEdge, edgeNormalVectors(:,iEdge), tang_vec)
+!        call mpas_unit_vec_in_r3(tang_vec)
+!        v(k,iEdge)=dot_product(vec_tmp, tang_vec)
+!        !print*, iEdge, cell1, cell2, k, v(k,iEdge), uReconstructX(k, cell1), uReconstructX(k, cell2)
+!      end do
+!    end do
+!
+!    return
+!  end subroutine mpas_perp_term!}}}
+
+!***********************************************************************
+!
 !  routine mpas_reconstruct_2d
 !
 !> \brief   2d MPAS Vector reconstruction routine using Perot scheme
@@ -116,7 +305,7 @@ module mpas_consistent
 !>  Input: grid meta data and vector component data residing at cell edges
 !>  Output: reconstructed vector field (measured in X,Y,Z) located at cell centers
 !-----------------------------------------------------------------------
-  subroutine mpas_reconstruct_2d(meshPool, u, uReconstructX, uReconstructY, uReconstructZ, uReconstructZonal, uReconstructMeridional)!{{{
+  subroutine mpas_perot_reconstruct(meshPool, u, uReconstructX, uReconstructY, uReconstructZ, uReconstructZonal, uReconstructMeridional)!{{{
 
     implicit none
 
@@ -222,10 +411,77 @@ module mpas_consistent
     end if
 
     return
-  end subroutine mpas_reconstruct_2d!}}}
+  end subroutine mpas_perot_reconstruct!}}}
 
 
+!***********************************************************************
+!
+!  routine mpas_barycentric_coefs_vertex
+!
+!> \brief   MPAS Calculate barycentric coordinate coefficients for
+!>           scalar interpolation to triangle circumcenters (vertices)
+!> \author  Pedro Peixoto
+!> \date    Nov 2015
+!> \details
+!>  Purpose: Compute barycentric coefficients for linear interpolation
+!>  Input: grid meta data and an vertex index
+!>  Output: barycentric coordinates indexed in the same order as
+!>          as the vertices of triangle
+!-----------------------------------------------------------------------
+  subroutine mpas_barycentric_coefs_vertex(iVertex, mesh, bar_coefs) !{{{
 
+      implicit none
+      type (mpas_pool_type), intent(in) :: mesh     !< Input: Mesh information
+      integer, intent(out) :: iVertex               !< Input: Triangle/vertex index
+      real (kind=RKIND), dimension(1:3), intent(out) :: bar_coefs !< Output: Barycentric coefficients
+
+      integer, pointer:: nCells, nVertices
+      real (kind=RKIND), dimension(:), pointer :: xCell, yCell, zCell
+      real (kind=RKIND), dimension(:), pointer :: xVertex, yVertex, zVertex
+      integer, dimension(:,:), pointer :: cellsOnVertex
+      real (kind=RKIND), dimension(1:3) :: p1, p2, p3, p
+
+
+      call mpas_pool_get_dimension(mesh, 'nCells', nCells)
+      call mpas_pool_get_dimension(mesh, 'nVertices', nVertices)
+      call mpas_pool_get_array(mesh, 'xCell', xCell)
+      call mpas_pool_get_array(mesh, 'yCell', yCell)
+      call mpas_pool_get_array(mesh, 'zCell', zCell)
+      call mpas_pool_get_array(mesh, 'xVertex', xVertex)
+      call mpas_pool_get_array(mesh, 'yVertex', yVertex)
+      call mpas_pool_get_array(mesh, 'zVertex', zVertex)
+      call mpas_pool_get_array(mesh, 'cellsOnVertex', cellsOnVertex)
+
+      bar_coefs=0.0
+
+      !Extreme halo case - improper to calculate here
+      if(maxval(cellsOnVertex(1:3,iVertex)) > nCells )then
+        return
+      end if
+
+      !Edge Point to have scalars interpolated to
+      p(1)=xVertex(iVertex)
+      p(2)=yVertex(iVertex)
+      p(3)=zVertex(iVertex)
+
+      !Vertices of the triangle (cell nodes)
+      p1(1)=xCell(cellsOnVertex(1,iVertex))
+      p1(2)=yCell(cellsOnVertex(1,iVertex))
+      p1(3)=zCell(cellsOnVertex(1,iVertex))
+      p2(1)=xCell(cellsOnVertex(2,iVertex))
+      p2(2)=yCell(cellsOnVertex(2,iVertex))
+      p2(3)=zCell(cellsOnVertex(2,iVertex))
+      p3(1)=xCell(cellsOnVertex(3,iVertex))
+      p3(2)=yCell(cellsOnVertex(3,iVertex))
+      p3(3)=zCell(cellsOnVertex(3,iVertex))
+
+      !Calculate barycentric coordinates
+      bar_coefs=bar_coord(p, p1, p2, p3)
+
+     !print*, bary_coord(:)
+
+      return
+  end subroutine mpas_barycentric_coefs_vertex!}}}
 
 !***********************************************************************
 !
@@ -234,14 +490,14 @@ module mpas_consistent
 !> \brief   MPAS Calculate barycentric coordinate coefficients for
 !>           scalar interpolation to edge midpoints
 !> \author  Pedro Peixoto
-!> \date    Oct 2015
+!> \date    Nov 2015
 !> \details
-!>  Purpose: compute barycentric coefficients for linear interpolation
+!>  Purpose: Compute barycentric coefficients for linear interpolation
 !>  Input: grid meta data and an edge index
 !>  Output: barycentric coordinates indexed in the same order as
 !>          as the vertices of triangle edgeTri that contains the edge midpoint
 !>          Also outputs the distance between the edge point and the triangle edge midpoint
-!>          (this is a sanity check for HCm x HCt grids)
+!>          (this is a sanity check for HCm x HCt grids) - optional
 !-----------------------------------------------------------------------
   subroutine mpas_barycentric_coefs_edge(iEdge, mesh, iVertex, bar_coefs,  edgeDisp) !{{{
 
@@ -250,27 +506,25 @@ module mpas_consistent
       type (mpas_pool_type), intent(in) :: mesh     !< Input: Mesh information
       integer, intent(out) :: iVertex               !< Output: Triangle that contains edge midpoint
       real (kind=RKIND), dimension(1:3), intent(out) :: bar_coefs !< Output: Barycentric coefficients
-      real (kind=RKIND), intent(out) :: edgeDisp     !< Output: Distance from edge midpoint to triangle edge midpoint
+      real (kind=RKIND), intent(out), optional :: edgeDisp     !< Output: Distance from edge midpoint to triangle edge midpoint
 
-      ! temporary arrays needed
       integer :: i, iCell, iCell1, iCell2, iVertex1, iVertex2
       integer, pointer:: nEdges, nCells, nEdgesSolve, nCellsSolve, nVertices, nVerticesSolve
+      integer, dimension(:,:), pointer :: cellsOnEdge, cellsOnVertex, verticesOnEdge
+      !integer, dimension(:,:), pointer :: edgesOnCell, edgesOnEdge, edgesOnVertex
+
+      real (kind=RKIND), pointer :: sphere_radius
       real (kind=RKIND), dimension(:), pointer :: xCell, yCell, zCell
       real (kind=RKIND), dimension(:), pointer :: xEdge, yEdge, zEdge
       real (kind=RKIND), dimension(:), pointer :: xVertex, yVertex, zVertex
-      integer, dimension(:,:), pointer :: cellsOnEdge, cellsOnVertex, verticesOnEdge, &
-                                          edgesOnCell, edgesOnEdge, edgesOnVertex
-      integer, dimension(:), pointer :: indexToEdgeID
-      real (kind=RKIND) :: xTrEdgeMidpoint, yTrEdgeMidpoint, zTrEdgeMidpoint, ptNorm, &
-                          distTrEdgeMidToVertex1, distTrEdgeMidToVertex2
+      real (kind=RKIND), dimension(:), pointer :: dcEdge
+
       logical, pointer :: on_a_sphere
-      real (kind=RKIND), pointer :: sphere_radius
-      !real (kind=RKIND), dimension(:), pointer :: dvEdge, dcEdge
+
+      real (kind=RKIND) :: xTrEdgeMidpoint, yTrEdgeMidpoint, zTrEdgeMidpoint, ptNorm
+      real (kind=RKIND) :: distTrEdgeMidToVertex1, distTrEdgeMidToVertex2
       real (kind=RKIND), dimension(1:3) :: p1, p2, p3, p
 
-!========================================================
-! temporary variables needed for init procedure
-!========================================================
       call mpas_pool_get_dimension(mesh, 'nEdges', nEdges)
       call mpas_pool_get_dimension(mesh, 'nEdgesSolve', nEdgesSolve)
       call mpas_pool_get_dimension(mesh, 'nCells', nCells)
@@ -286,102 +540,104 @@ module mpas_consistent
       call mpas_pool_get_array(mesh, 'xVertex', xVertex)
       call mpas_pool_get_array(mesh, 'yVertex', yVertex)
       call mpas_pool_get_array(mesh, 'zVertex', zVertex)
+      call mpas_pool_get_array(mesh, 'dcEdge', dcEdge)
       call mpas_pool_get_array(mesh, 'cellsOnEdge', cellsOnEdge)
       call mpas_pool_get_array(mesh, 'cellsOnVertex', cellsOnVertex)
       call mpas_pool_get_array(mesh, 'verticesOnEdge', verticesOnEdge)
-      !call mpas_pool_get_array(mesh, 'dcEdge', dcEdge)
-      !call mpas_pool_get_array(mesh, 'dvEdge', dvEdge)
-      call mpas_pool_get_config(mesh, 'on_a_sphere', on_a_sphere)
       call mpas_pool_get_config(mesh, 'sphere_radius', sphere_radius)
-      !call mpas_pool_get_array(mesh, 'indexToEdgeID', indexToEdgeID)
-
+      call mpas_pool_get_config(mesh, 'on_a_sphere', on_a_sphere)
 
       bar_coefs=0.0
 
-			!do iEdge = 1, nEdges
-			! print*, iEdge, indexToEdgeID(iEdge), verticesOnEdge(:, iEdge)
-			!end do
-      !do iEdge = 1, nEdges
-         iCell1 = cellsOnEdge(1,iEdge)
-         iCell2 = cellsOnEdge(2,iEdge)
-         iVertex1 = verticesOnEdge(1,iEdge)
-         iVertex2 = verticesOnEdge(2,iEdge)
-         print*
-         print*, iEdge, nEdges, nEdgesSolve
-         print*, iCell1, iCell2, nCells, nCellsSolve
-         print*, iVertex1, iVertex2, nVertices, nVerticesSolve
+      iCell1 = cellsOnEdge(1,iEdge)
+      iCell2 = cellsOnEdge(2,iEdge)
+      iVertex1 = verticesOnEdge(1,iEdge)
+      iVertex2 = verticesOnEdge(2,iEdge)
+      !print*
+      !print*, iEdge, nEdges, nEdgesSolve
+      !print*, iCell1, iCell2, nCells, nCellsSolve
+      !print*, iVertex1, iVertex2, nVertices, nVerticesSolve
 
-         !Extreme halo case - unnecessary
-         if(iCell1 > nCells .or. iCell2 > nCells .or. iVertex1 > nVertices .or. iVertex2 > nVertices )then
-          iVertex=iVertex1
-          edgeDisp=0.0
-          return
-         end if
-        !Calculate midpoint of the triangle edge (the one that intersects the Voronoi cell edges
-        ! There is no need to divide by 2 (average) because it is going to be nromalized anyway
-         xTrEdgeMidpoint = xCell(iCell1) + xCell(iCell2)
-         yTrEdgeMidpoint = yCell(iCell1) + yCell(iCell2)
-         zTrEdgeMidpoint = zCell(iCell1) + zCell(iCell2)
-         ptNorm= xTrEdgeMidpoint**2 + yTrEdgeMidpoint**2 + zTrEdgeMidpoint**2
-         ptNorm=sqrt(ptNorm)
-         if (on_a_sphere)then
-           xTrEdgeMidpoint=sphere_radius*xTrEdgeMidpoint/ptNorm
-           yTrEdgeMidpoint=sphere_radius*yTrEdgeMidpoint/ptNorm
-           zTrEdgeMidpoint=sphere_radius*zTrEdgeMidpoint/ptNorm
-         end if
-        !print*, xTrEdgeMidpoint, yTrEdgeMidpoint, zTrEdgeMidpoint
-        !print*, xEdge(iEdge), yEdge(iEdge), zEdge(iEdge)
+      !Extreme halo case - improper to calculate here
+      if(iCell1 > nCells .or. iCell2 > nCells .or. iVertex1 > nVertices .or. iVertex2 > nVertices )then
+       iVertex=min(iVertex1, iVertex2)
+       return
+      end if
 
-        !Distance from edge point given in the mesh and the triangle edge midpoint
-        !  (sanity check for HCm or HCt grid)
-        edgeDisp=arc_length(xTrEdgeMidpoint, yTrEdgeMidpoint, zTrEdgeMidpoint, &
-                            xEdge(iEdge), yEdge(iEdge), zEdge(iEdge))
+      !Calculate midpoint of the triangle edge (the one that intersects the Voronoi cell edges
+      ! There is no need to divide by 2 (average) because it is going to be nromalized anyway
+      xTrEdgeMidpoint = xCell(iCell1) + xCell(iCell2)
+      yTrEdgeMidpoint = yCell(iCell1) + yCell(iCell2)
+      zTrEdgeMidpoint = zCell(iCell1) + zCell(iCell2)
+      ptNorm= xTrEdgeMidpoint**2 + yTrEdgeMidpoint**2 + zTrEdgeMidpoint**2
+      ptNorm=sqrt(ptNorm)
+      if (on_a_sphere)then
+        xTrEdgeMidpoint=sphere_radius*xTrEdgeMidpoint/ptNorm
+        yTrEdgeMidpoint=sphere_radius*yTrEdgeMidpoint/ptNorm
+        zTrEdgeMidpoint=sphere_radius*zTrEdgeMidpoint/ptNorm
+      end if
+      !print*, xTrEdgeMidpoint, yTrEdgeMidpoint, zTrEdgeMidpoint
+      !print*, xEdge(iEdge), yEdge(iEdge), zEdge(iEdge)
 
-         !Calculate distances to vertices
-         distTrEdgeMidToVertex1=arc_length(xTrEdgeMidpoint, yTrEdgeMidpoint, zTrEdgeMidpoint, &
-                                           xVertex(iVertex1),yVertex(iVertex1), zVertex(iVertex1))
+      if(present(edgeDisp))then
+	      !Distance from edge point given in the mesh and the triangle edge midpoint
+	      !  (sanity check for HCm or HCt grid)
+	      edgeDisp=arc_length(xTrEdgeMidpoint, yTrEdgeMidpoint, zTrEdgeMidpoint, &
+	                          xEdge(iEdge),    yEdge(iEdge),    zEdge(iEdge))
+	      !Normalize edgeDisp
+	      edgeDisp=edgeDisp/dcEdge(iEdge)
+      end if
+      !Calculate distances to vertices
+      distTrEdgeMidToVertex1=arc_length(xTrEdgeMidpoint,  yTrEdgeMidpoint,   zTrEdgeMidpoint, &
+                                        xVertex(iVertex1),yVertex(iVertex1), zVertex(iVertex1))
 
-         distTrEdgeMidToVertex2=arc_length(xTrEdgeMidpoint, yTrEdgeMidpoint, zTrEdgeMidpoint, &
-                                           xVertex(iVertex2),yVertex(iVertex2), zVertex(iVertex2))
-
-
-        !print*, distTrEdgeMidToVertex1, distTrEdgeMidToVertex2, distTrEdgeMidToVertex1+distTrEdgeMidToVertex2, &
-        ! dvEdge(iEdge), dcEdge(iEdge)
-
-        !Case 1: TrEdgeMid closer to v1 ==> Hx Edge midpoint belongs to triangle v2
-        !  v1----------TrEdgeMid--------HxMid-----------------------------v2
-        !Case 2: TrEdgeMid closer to v2 ==> Hx Edge midpoint belongs to triangle v1
-        !  v1---------------------------HxMid-----TrEdgeMid---------------v2
-         if(distTrEdgeMidToVertex1<distTrEdgeMidToVertex2)then
-            iVertex=iVertex2
-         else
-            iVertex=iVertex1
-         end if
-         print*, iEdge, iVertex
-         print*, cellsOnVertex(:,iVertex)
-
-         !Edge Point to have scalars interpolated to
-         p(1)=xEdge(iEdge)
-         p(2)=yEdge(iEdge)
-         p(3)=zEdge(iEdge)
-
-         !Vertices of the triangle (cell nodes) tha contain the Edge Midpoint
-         p1(1)=xCell(cellsOnVertex(1,iVertex))
-         p1(2)=yCell(cellsOnVertex(1,iVertex))
-         p1(3)=zCell(cellsOnVertex(1,iVertex))
-         p2(1)=xCell(cellsOnVertex(2,iVertex))
-         p2(2)=yCell(cellsOnVertex(2,iVertex))
-         p2(3)=zCell(cellsOnVertex(2,iVertex))
-         p3(1)=xCell(cellsOnVertex(3,iVertex))
-         p3(2)=yCell(cellsOnVertex(3,iVertex))
-         p3(3)=zCell(cellsOnVertex(3,iVertex))
-         bar_coefs=bar_coord(p, p1, p2, p3)
+      distTrEdgeMidToVertex2=arc_length(xTrEdgeMidpoint,  yTrEdgeMidpoint,   zTrEdgeMidpoint, &
+                                        xVertex(iVertex2),yVertex(iVertex2), zVertex(iVertex2))
 
 
-        !print*, bary_coord(:)
+      !print*, distTrEdgeMidToVertex1, distTrEdgeMidToVertex2, distTrEdgeMidToVertex1+distTrEdgeMidToVertex2, &
+      ! dcEdge(iEdge)
 
+      !Case 1: TrEdgeMid closer to v1 ==> Hx Edge midpoint belongs to triangle v2
+      !  v1----------TrEdgeMid--------HxMid-----------------------------v2
+      !Case 2: TrEdgeMid closer to v2 ==> Hx Edge midpoint belongs to triangle v1
+      !  v1---------------------------HxMid-----TrEdgeMid---------------v2
+      if(distTrEdgeMidToVertex1<distTrEdgeMidToVertex2)then
+         iVertex=iVertex2
+      else
+         iVertex=iVertex1
+      end if
+      !print*, iEdge, iVertex, cellsOnEdge(1,iEdge)
+      !print*, "Cells Tri:", cellsOnVertex(:,iVertex)
+      !print*, maxval(cellsOnVertex(1:3,iVertex)), maxval(cellsOnVertex(1:3,iVertex)) > nVertices
 
-      !end do
+      !Halo cell problem - return zero coefficients and any vertex
+      if(maxval(cellsOnVertex(1:3,iVertex)) > nCells )then
+       iVertex=min(iVertex1, iVertex2)
+       return
+      end if
+
+      !Edge Point to have scalars interpolated to
+      p(1)=xEdge(iEdge)
+      p(2)=yEdge(iEdge)
+      p(3)=zEdge(iEdge)
+
+      !Vertices of the triangle (cell nodes) tha contain the Edge Midpoint
+      p1(1)=xCell(cellsOnVertex(1,iVertex))
+      p1(2)=yCell(cellsOnVertex(1,iVertex))
+      p1(3)=zCell(cellsOnVertex(1,iVertex))
+      p2(1)=xCell(cellsOnVertex(2,iVertex))
+      p2(2)=yCell(cellsOnVertex(2,iVertex))
+      p2(3)=zCell(cellsOnVertex(2,iVertex))
+      p3(1)=xCell(cellsOnVertex(3,iVertex))
+      p3(2)=yCell(cellsOnVertex(3,iVertex))
+      p3(3)=zCell(cellsOnVertex(3,iVertex))
+
+      !Calculate coefficients
+      bar_coefs=bar_coord(p, p1, p2, p3)
+
+      !print*, bar_coefs(:)
+
       return
   end subroutine mpas_barycentric_coefs_edge!}}}
 

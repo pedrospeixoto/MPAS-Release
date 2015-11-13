@@ -25,11 +25,13 @@
     config_monotonic = false
     config_epssm = 0.1
     config_smdiv = 0.1
+    config_apvm_upwinding = 0.5
     config_consistent_scheme = false
+    config_hcm_staggering = false
     config_KE_vecrecon_perot = false
-    config_KE_vecrecon_rbf = true
-    config_bary_interpol_edge = true
-    config_bary_interpol_tri = false
+    config_KE_vecrecon_rbf = false
+    config_bary_interpol_edge = false
+    config_bary_interpol_vertex = false
     config_consist_perp = true
     config_hollingsworth = true
 /
