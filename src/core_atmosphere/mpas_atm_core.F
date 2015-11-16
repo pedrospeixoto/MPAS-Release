@@ -256,7 +256,7 @@ module atm_core
       end do
 
       !PXT - Check correct usage of consistent scheme and HCm grid
-      call mpas_verify_consist_config(mesh, block % configs)
+      call mpas_consist_verify_config(mesh, block % configs)
 
       if (.not. config_do_restart .or. (config_do_restart .and. config_do_DAcycling)) then
          call atm_init_coupled_diagnostics( state, 1, diag, mesh, block % configs)

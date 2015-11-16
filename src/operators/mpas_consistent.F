@@ -23,10 +23,10 @@ module mpas_consistent
 
   public :: mpas_barycentric_coefs_edge, &
             mpas_barycentric_coefs_vertex, &
-            mpas_initialize_vectors_general, &
             mpas_perot_reconstruct, &
-            mpas_tang_vel_comp, &
-            mpas_verify_consist_config
+            mpas_consist_tang_vel_comp, &
+            mpas_consist_verify_config, &
+            mpas_consist_weights_on_edge
 
   !interface mpas_perot_reconstruct
      !module procedure mpas_reconstruct_1d
@@ -48,7 +48,7 @@ module mpas_consistent
 !>  Input: grid meta data and configs
 !>  Output: config_hcm_staggering=true/false - write warning
 !-----------------------------------------------------------------------
-  subroutine mpas_verify_consist_config(mesh, configs) !{{{
+  subroutine mpas_consist_verify_config(mesh, configs) !{{{
 
       implicit none
       type (mpas_pool_type), intent(in) :: mesh     !< Input: Mesh information
@@ -149,7 +149,76 @@ module mpas_consistent
       end if
 
       return
-  end subroutine mpas_verify_consist_config!}}}
+  end subroutine mpas_consist_verify_config!}}}
+
+!***********************************************************************
+!
+!  routine mpas_consistent_weights_on_edge
+!
+!> \brief Calculates weights for the edge reconstruction using the consistent scheme of Peixoto 2015
+!>
+!> \author  Pedro Peixoto
+!> \date    Nov 2015
+!> \details
+!>  Purpose:
+!>  Input: grid meta data
+!>  Output: grid meta data with weights
+!-----------------------------------------------------------------------
+  subroutine mpas_consist_weights_on_edge(mesh) !{{{
+
+      implicit none
+      type (mpas_pool_type) :: mesh     !< Input: Mesh information
+
+      integer :: i, iEdge, iCell1, iCell2, eoe, k
+      integer, pointer:: nEdges, nCells, nEdgesSolve, nCellsSolve, nVertLevels
+      integer, dimension(:), pointer :: nEdgesOnCell, nEdgesOnEdge
+      integer, dimension(:,:), pointer :: cellsOnEdge
+      integer, dimension(:,:), pointer :: edgesOnCell, edgesOnEdge
+
+      real (kind=RKIND), pointer :: sphere_radius
+      real (kind=RKIND), dimension(:), pointer :: xCell, yCell, zCell
+      real (kind=RKIND), dimension(:), pointer :: xEdge, yEdge, zEdge
+      real (kind=RKIND), dimension(:), pointer :: dcEdge
+      real (kind=RKIND), dimension(:,:), pointer :: weightsOnEdge
+
+      logical, pointer :: on_a_sphere
+
+      real (kind=RKIND) :: xTrEdgeMidpoint, yTrEdgeMidpoint, zTrEdgeMidpoint, ptNorm
+      real (kind=RKIND) :: edgeDisp, edgeDispMax
+      real (kind=RKIND), dimension(1:3) :: p1, p2, p3, p
+
+      call mpas_pool_get_dimension(mesh, 'nEdges', nEdges)
+      call mpas_pool_get_dimension(mesh, 'nEdgesSolve', nEdgesSolve)
+      call mpas_pool_get_dimension(mesh, 'nCells', nCells)
+      call mpas_pool_get_dimension(mesh, 'nCellsSolve', nCellsSolve)
+      call mpas_pool_get_array(mesh, 'xCell', xCell)
+      call mpas_pool_get_array(mesh, 'yCell', yCell)
+      call mpas_pool_get_array(mesh, 'zCell', zCell)
+      call mpas_pool_get_array(mesh, 'xEdge', xEdge)
+      call mpas_pool_get_array(mesh, 'yEdge', yEdge)
+      call mpas_pool_get_array(mesh, 'zEdge', zEdge)
+      call mpas_pool_get_array(mesh, 'dcEdge', dcEdge)
+      call mpas_pool_get_array(mesh, 'cellsOnEdge', cellsOnEdge)
+      call mpas_pool_get_array(mesh, 'weightsOnEdge', weightsOnEdge)
+      call mpas_pool_get_array(mesh, 'nEdgesOnEdge', nEdgesOnEdge)
+      call mpas_pool_get_array(mesh, 'edgesOnEdge', edgesOnEdge)
+      call mpas_pool_get_config(mesh, 'sphere_radius', sphere_radius)
+      call mpas_pool_get_config(mesh, 'on_a_sphere', on_a_sphere)
+
+      do iEdge = 1,nEdges !This has extra information because on halos
+        print*, iEdge, edgesOnEdge(1:nEdgesOnEdge(iEdge),iEdge)
+        !do iCell=1,2
+
+         do i=1,nEdgesOnEdge(iEdge)
+           eoe = edgesOnEdge(i,iEdge)
+           print*, iEdge, eoe, weightsOnEdge(i,iEdge)
+           !weightsOnEdge(i,iEdge)=0.0
+         end do
+      end do
+
+      return
+  end subroutine mpas_consist_weights_on_edge!}}}
+
 
 !***********************************************************************
 !
@@ -165,7 +234,7 @@ module mpas_consistent
 !>
 !>  Uses the info given in uReconstructXYZ to build the tangential compoent - uReconstruct needs to be precalculated
 !-----------------------------------------------------------------------
-  subroutine mpas_tang_vel_comp(meshPool, u, uReconstructX, uReconstructY, uReconstructZ, v)!{{{
+  subroutine mpas_consist_tang_vel_comp(meshPool, u, uReconstructX, uReconstructY, uReconstructZ, v)!{{{
 
     implicit none
 
@@ -220,7 +289,7 @@ module mpas_consistent
     end do
 
     return
-  end subroutine mpas_tang_vel_comp!}}}
+  end subroutine mpas_consist_tang_vel_comp!}}}
 
 !***********************************************************************
 !

@@ -2846,13 +2846,12 @@ module atm_time_integration
          !PXT- Use perot style reconstruction TODO
          if(config_consist_perp .or. config_consistent_scheme)then
             !call mpas_tang_vel_comp(mesh, u, uReconstructX, uReconstructY, uReconstructZ, v)
-            print*
-            print*, iEdge
-            print*, edgesOnEdge(1:nEdgesOnEdge(iEdge),iEdge)
-            print*, cellsOnEdge(1,iEdge), cellsOnEdge(2,iEdge)
-            print*, edgesOnCell(1:nEdgesOnCell(cellsOnEdge(1,iEdge)),cellsOnEdge(1,iEdge)), &
-              edgesOnCell(1:nEdgesOnCell(cellsOnEdge(2,iEdge)),cellsOnEdge(2,iEdge))
-
+            !print*
+            !print*, iEdge
+            !print*, edgesOnEdge(1:nEdgesOnEdge(iEdge),iEdge)
+            !print*, cellsOnEdge(1,iEdge), cellsOnEdge(2,iEdge)
+            !print*, edgesOnCell(1:nEdgesOnCell(cellsOnEdge(1,iEdge)),cellsOnEdge(1,iEdge)), &
+            !  edgesOnCell(1:nEdgesOnCell(cellsOnEdge(2,iEdge)),cellsOnEdge(2,iEdge))
             q(:) = 0.0
            do j = 1,nEdgesOnEdge(iEdge)
               eoe = edgesOnEdge(j,iEdge)
@@ -4019,13 +4018,29 @@ module atm_time_integration
         !PXT - Interpolate reconstructed velocities to the edge
         !Need to use Perot reconstruction because RBF has no values at halos
         !print*, nEdges
-        call mpas_tang_vel_comp(mesh, u, uReconstructX, uReconstructY, uReconstructZ, v)
+        call mpas_consist_tang_vel_comp(mesh, u, uReconstructX, uReconstructY, uReconstructZ, v)
+        call mpas_consist_weights_on_edge(mesh)
         !print*, "tg recon"
-        !do iEdge = 1,nEdges
-        !  do k=1,nVertLevels
-        !        print*, iEdge, k, v(k,iEdge)
-        !  end do
-        !end do
+        print*, "Recon with recon"
+        do iEdge = 1,nEdges
+          do k=1,nVertLevels
+                print*, iEdge, k, v(k,iEdge)
+          end do
+        end do
+        do iEdge = 1,nEdges !This has extra information because on halos
+           do i=1,nEdgesOnEdge(iEdge)
+              eoe = edgesOnEdge(i,iEdge)
+              do k = 1,nVertLevels
+                 v(k,iEdge) = v(k,iEdge) + weightsOnEdge(i,iEdge) * u(k, eoe)
+              end do
+           end do
+        end do
+        print*, "Recon with weights"
+        do iEdge = 1,nEdges
+          do k=1,nVertLevels
+                print*, iEdge, k, v(k,iEdge)
+          end do
+        end do
       else
 	      do iEdge = 1,nEdges !This has extra information because on halos
 	         do i=1,nEdgesOnEdge(iEdge)
@@ -4034,9 +4049,9 @@ module atm_time_integration
 	               v(k,iEdge) = v(k,iEdge) + weightsOnEdge(i,iEdge) * u(k, eoe)
 	            end do
 	         end do
-	            !do k = 1,nVertLevels
-              !   print*, iEdge, k, v(k,iEdge), edgesOnEdge(1:nEdgesOnEdge(iEdge),iEdge)
-              !end do
+	        !do k = 1,nVertLevels
+            !   print*, iEdge, k, v(k,iEdge), edgesOnEdge(1:nEdgesOnEdge(iEdge),iEdge)
+          !end do
 	      end do
       end if
 
