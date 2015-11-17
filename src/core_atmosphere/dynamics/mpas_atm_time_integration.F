@@ -3732,7 +3732,7 @@ module atm_time_integration
       real (kind=RKIND) :: h_vertex, r
       real (kind=RKIND) :: invAreaTriangle, r1, r2
 
-      integer, pointer :: nCells, nEdges, nVertices, nVertLevels, vertexDegree
+      integer, pointer :: nCells, nEdges, nVertices, nVertLevels, vertexDegree, nEdgesSolve
       real (kind=RKIND), dimension(:), pointer :: fVertex, fEdge, dvEdge, dcEdge, areaCell, areaTriangle, invAreaCell, indexToEdgeID
       real (kind=RKIND), dimension(:,:), pointer :: vh, weightsOnEdge, kiteAreasOnVertex, h_edge, h, u, v, &
                                                     circulation, vorticity, ke, pv_edge, pv_vertex, pv_cell, gradPVn, gradPVt, &
@@ -3819,6 +3819,7 @@ module atm_time_integration
 
       call mpas_pool_get_dimension(mesh, 'nCells', nCells)
       call mpas_pool_get_dimension(mesh, 'nEdges', nEdges)
+      call mpas_pool_get_dimension(mesh, 'nEdgesSolve', nEdgesSolve)
       call mpas_pool_get_dimension(mesh, 'nVertices', nVertices)
       call mpas_pool_get_dimension(mesh, 'nVertLevels', nVertLevels)
       call mpas_pool_get_dimension(mesh, 'vertexDegree', vertexDegree)
@@ -4014,46 +4015,50 @@ module atm_time_integration
       !
       !PXT- Use perot style reconstruction
       v(:,:) = 0.0
-      if(config_consist_perp .or. config_consistent_scheme)then
+      !if(config_consist_perp .or. config_consistent_scheme)then
         !PXT - Interpolate reconstructed velocities to the edge
         !Need to use Perot reconstruction because RBF has no values at halos
         !print*, nEdges
-        call mpas_consist_tang_vel_comp(mesh, u, uReconstructX, uReconstructY, uReconstructZ, v)
-        call mpas_consist_weights_on_edge(mesh)
+        !call mpas_consist_tang_vel_comp(mesh, u, uReconstructX, uReconstructY, uReconstructZ, v)
+        !call mpas_consist_weights_on_edge(mesh)
         !print*, "tg recon"
-        print*, "Recon with recon"
-        do iEdge = 1,nEdges
-          do k=1,nVertLevels
-                print*, iEdge, k, v(k,iEdge)
-          end do
-        end do
-        do iEdge = 1,nEdges !This has extra information because on halos
-           do i=1,nEdgesOnEdge(iEdge)
-              eoe = edgesOnEdge(i,iEdge)
-              do k = 1,nVertLevels
-                 v(k,iEdge) = v(k,iEdge) + weightsOnEdge(i,iEdge) * u(k, eoe)
-              end do
-           end do
-        end do
-        print*, "Recon with weights"
-        do iEdge = 1,nEdges
-          do k=1,nVertLevels
-                print*, iEdge, k, v(k,iEdge)
-          end do
-        end do
-      else
-	      do iEdge = 1,nEdges !This has extra information because on halos
+        !print*, "Recon with recon"
+        !do iEdge = 1,nEdges
+        !  do k=1,nVertLevels
+        !        print*, iEdge, k, v(k,iEdge)
+        !  end do
+        !end do
+        !v(:,:) = 0.0
+        !do iEdge = 1,nEdges !This has extra information because of halos
+        !   do i=1,nEdgesOnEdge(iEdge)
+        !      eoe = edgesOnEdge(i,iEdge)
+        !      do k = 1,nVertLevels
+        !         v(k,iEdge) = v(k,iEdge) + weightsOnEdge(i,iEdge) * u(k, eoe)
+        !      end do
+        !   end do
+        !end do
+        !print*, "Recon with weights"
+        !do iEdge = 1,nEdges
+        !  do k=1,nVertLevels
+        !        print*, iEdge, k, v(k,iEdge)
+        !  end do
+        !end do
+      !else
+
+      !PXT - since the weights were overwritten, this can be used for either perp methods (consist or trsk)
+      v(:,:) = 0.0
+	      do iEdge = 1,nEdges !This has extra information because of halos
 	         do i=1,nEdgesOnEdge(iEdge)
 	            eoe = edgesOnEdge(i,iEdge)
 	            do k = 1,nVertLevels
 	               v(k,iEdge) = v(k,iEdge) + weightsOnEdge(i,iEdge) * u(k, eoe)
 	            end do
 	         end do
-	        !do k = 1,nVertLevels
-            !   print*, iEdge, k, v(k,iEdge), edgesOnEdge(1:nEdgesOnEdge(iEdge),iEdge)
-          !end do
+	        do k = 1,nVertLevels
+               print*, iEdge, nEdges, nEdgesSolve, k, v(k,iEdge), edgesOnEdge(1:nEdgesOnEdge(iEdge),iEdge)
+          end do
 	      end do
-      end if
+      !end if
 
       !
       ! Compute height at vertices, pv at vertices, and average pv to edge locations

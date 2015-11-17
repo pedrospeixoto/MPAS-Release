@@ -169,7 +169,7 @@ module mpas_consistent
       implicit none
       type (mpas_pool_type) :: mesh     !< Input: Mesh information
 
-      integer :: i, iEdge, iCell1, iCell2, eoe, k
+      integer :: i, j, k, iEdge, iCell, eoe, eoc, cell1, cell2
       integer, pointer:: nEdges, nCells, nEdgesSolve, nCellsSolve, nVertLevels
       integer, dimension(:), pointer :: nEdgesOnCell, nEdgesOnEdge
       integer, dimension(:,:), pointer :: cellsOnEdge
@@ -178,14 +178,19 @@ module mpas_consistent
       real (kind=RKIND), pointer :: sphere_radius
       real (kind=RKIND), dimension(:), pointer :: xCell, yCell, zCell
       real (kind=RKIND), dimension(:), pointer :: xEdge, yEdge, zEdge
-      real (kind=RKIND), dimension(:), pointer :: dcEdge
+      real (kind=RKIND), dimension(:), pointer :: dcEdge, dvEdge, invAreaCell, areaCell
       real (kind=RKIND), dimension(:,:), pointer :: weightsOnEdge
+      real (kind=RKIND), dimension(:,:), pointer :: edgeNormalVectors
 
       logical, pointer :: on_a_sphere
 
       real (kind=RKIND) :: xTrEdgeMidpoint, yTrEdgeMidpoint, zTrEdgeMidpoint, ptNorm
-      real (kind=RKIND) :: edgeDisp, edgeDispMax
+      real (kind=RKIND) :: edgeDisp, edgeDispMax, signcor
       real (kind=RKIND), dimension(1:3) :: p1, p2, p3, p
+
+      real (kind=RKIND), dimension(1:3) :: vec_tmp, vec_cor, tang_vec, xyzEdge, xyzCell
+      real (kind=RKIND), dimension(1:20) :: w
+      integer, dimension(1:20):: w_ed
 
       call mpas_pool_get_dimension(mesh, 'nEdges', nEdges)
       call mpas_pool_get_dimension(mesh, 'nEdgesSolve', nEdgesSolve)
@@ -197,23 +202,80 @@ module mpas_consistent
       call mpas_pool_get_array(mesh, 'xEdge', xEdge)
       call mpas_pool_get_array(mesh, 'yEdge', yEdge)
       call mpas_pool_get_array(mesh, 'zEdge', zEdge)
-      call mpas_pool_get_array(mesh, 'dcEdge', dcEdge)
+      call mpas_pool_get_array(mesh, 'dvEdge', dvEdge)
       call mpas_pool_get_array(mesh, 'cellsOnEdge', cellsOnEdge)
       call mpas_pool_get_array(mesh, 'weightsOnEdge', weightsOnEdge)
       call mpas_pool_get_array(mesh, 'nEdgesOnEdge', nEdgesOnEdge)
+      call mpas_pool_get_array(mesh, 'nEdgesOnCell', nEdgesOnCell)
       call mpas_pool_get_array(mesh, 'edgesOnEdge', edgesOnEdge)
+      call mpas_pool_get_array(mesh, 'edgesOnCell', edgesOnCell)
+      call mpas_pool_get_array(mesh, 'edgeNormalVectors', edgeNormalVectors)
+      call mpas_pool_get_array(mesh, 'invAreaCell', invAreaCell)
+      call mpas_pool_get_array(mesh, 'areaCell', areaCell)
       call mpas_pool_get_config(mesh, 'sphere_radius', sphere_radius)
       call mpas_pool_get_config(mesh, 'on_a_sphere', on_a_sphere)
 
       do iEdge = 1,nEdges !This has extra information because on halos
-        print*, iEdge, edgesOnEdge(1:nEdgesOnEdge(iEdge),iEdge)
+        !print*, iEdge, edgesOnEdge(1:nEdgesOnEdge(iEdge),iEdge)
         !do iCell=1,2
+        !Calculate the edge tangent vector
+        xyzEdge(1)=xEdge(iEdge)
+        xyzEdge(2)=yEdge(iEdge)
+        xyzEdge(3)=zEdge(iEdge)
+        !print*, edgeNormalVectors(:,iEdge)
+        call mpas_cross_product_in_r3(xyzEdge, edgeNormalVectors(:,iEdge), tang_vec)
+        call mpas_unit_vec_in_r3(tang_vec)
+        k=1
+        nEdgesOnEdge(iEdge)=0
+        do i=1,2
+          iCell = cellsOnEdge(i,iEdge)
+          xyzCell(1)=xCell(iCell)
+          xyzCell(2)=yCell(iCell)
+          xyzCell(3)=zCell(iCell)
 
-         do i=1,nEdgesOnEdge(iEdge)
-           eoe = edgesOnEdge(i,iEdge)
-           print*, iEdge, eoe, weightsOnEdge(i,iEdge)
-           !weightsOnEdge(i,iEdge)=0.0
-         end do
+          do j=1, nEdgesOnCell(iCell)
+            eoc=edgesOnCell(j,iCell)
+            !if( eoc == iEdge )then
+            !  cycle
+            !end if
+            xyzEdge(1)=xEdge(eoc)
+            xyzEdge(2)=yEdge(eoc)
+            xyzEdge(3)=zEdge(eoc)
+            vec_tmp=xyzEdge-xyzCell
+            !w(k)=0.5*dvEdge(eoc)*dot_product(vec_tmp, tang_vec)*invAreaCell(iCell)
+
+            !Calculate weight as in Peixoto 2015
+            weightsOnEdge(k,iEdge)=0.5*dvEdge(eoc)*dot_product(vec_tmp, tang_vec)*invAreaCell(iCell)
+
+
+            !Correct the sign to match the orientation of u on edges
+            cell1 = cellsOnEdge(1,eoc)
+            cell2 = cellsOnEdge(2,eoc)
+            vec_cor(1)=xCell(cell2)-xCell(cell1)
+            vec_cor(2)=yCell(cell2)-yCell(cell1)
+            vec_cor(3)=zCell(cell2)-zCell(cell1)
+            !u is stored from  cell1 --> cell2
+            signcor=dot_product(vec_cor, vec_tmp)
+            !if sign_cor is positive, then u point outwards with respect to the cell, else inwards
+            weightsOnEdge(k,iEdge)=sign(1.0, signcor)*weightsOnEdge(k,iEdge)
+
+            !Correct the edeOnEdge to match the weights
+            edgesOnEdge(k,iEdge)=eoc
+
+            !print*, iEdge, iCell, eoc, dvEdge(eoc), invAreaCell(iCell), AreaCell(iCell), dot_product(vec_tmp, tang_vec)
+            !w_ed(k)=eoc
+            k=k+1
+          end do
+          !Correct the nEdgesOnEdge, since now it also has the edge itself (iEdge)
+          nEdgesOnEdge(iEdge)=nEdgesOnEdge(iEdge)+nEdgesOnCell(iCell)
+        end do
+       ! print*
+       !do i=1,nEdgesOnEdge(iEdge)
+       !   eoe = edgesOnEdge(i,iEdge)
+       !   print*, iEdge, eoe, w_ed(i), weightsOnEdge(i,iEdge),  w(i)
+          !weightsOnEdge(i,iEdge)=0.0
+       !end do
+       !print*
       end do
 
       return
@@ -248,8 +310,8 @@ module mpas_consistent
     integer, pointer :: nVertLevels, nEdges, nEdgesSolve
     integer, dimension(:,:), pointer :: cellsOnEdge
 
-    real(kind=RKIND), dimension(:), pointer :: xEdge, yEdge, zEdge
-    real(kind=RKIND), dimension(:,:), pointer :: edgeNormalVectors
+    real (kind=RKIND), dimension(:), pointer :: xEdge, yEdge, zEdge
+    real (kind=RKIND), dimension(:,:), pointer :: edgeNormalVectors
 
 
     integer :: iCell, iEdge, i, k, cell1, cell2

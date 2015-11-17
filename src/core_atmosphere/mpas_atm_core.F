@@ -241,6 +241,14 @@ module atm_core
    
       logical, pointer :: config_do_restart, config_do_DAcycling
 
+      !PXT additional flags
+      logical, pointer :: config_consistent_scheme
+      logical, pointer :: config_consist_perp
+
+      !PXT additional flags
+      call mpas_pool_get_config(block % configs, 'config_consistent_scheme', config_consistent_scheme)
+      call mpas_pool_get_config(block % configs, 'config_consist_perp', config_consist_perp)
+
       call mpas_pool_get_subpool(block % structs, 'diag', diag)
       call mpas_pool_get_subpool(block % structs, 'state', state)
 
@@ -265,13 +273,21 @@ module atm_core
       !PXT - The RBF reconstruction and vector initialization was moved here as it is needed for
       !      the diagonstics calculation
 
-      !PXT - This step is necessary for perot as well, it has to be clear that
+      !PXT - This step is necessary for perot and consistent perp as well, it has to be clear that
       !    this is necesary even for non RBF methods
       !    Alternative: call directly call mpas_initialize_vectors(mesh) - need to add use mpas_vector_operations
       call mpas_rbf_interp_initialize(mesh)
 
       !Pre-calculate RBF weights
+      !PXT - not necessary for perot reconstruction and consistent perp
       call mpas_init_reconstruct(mesh)
+
+      !PXT - Calculate weights for consistent perp reconstruction
+      !  IMPORTANT - this will overwrite the following mesh arrays:
+      !         weightsOnEdge, nEdgesOnEdge, edgesOnEdge
+      if(config_consist_perp .or. config_consistent_scheme)then
+        call mpas_consist_weights_on_edge(mesh)
+      end if
 
       !PXT - This was moved to inside the solve_diagnostics
       !call mpas_pool_get_array(state, 'u', u, 1)
