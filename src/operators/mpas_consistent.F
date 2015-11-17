@@ -37,7 +37,7 @@ module mpas_consistent
 
 !***********************************************************************
 !
-!  routine mpas_verify_stag
+!  routine mpas_consist_verify_config
 !
 !> \brief   checks if the config_hcm_staggering matches the grid given in the initial
 !>           conditions
@@ -153,9 +153,10 @@ module mpas_consistent
 
 !***********************************************************************
 !
-!  routine mpas_consistent_weights_on_edge
+!  routine mpas_consist_weights_on_edge
 !
-!> \brief Calculates weights for the edge reconstruction using the consistent scheme of Peixoto 2015
+!> \brief Calculates weights for the edge reconstruction using
+!>           the consistent scheme of Peixoto 2015
 !>
 !> \author  Pedro Peixoto
 !> \date    Nov 2015
@@ -163,6 +164,9 @@ module mpas_consistent
 !>  Purpose:
 !>  Input: grid meta data
 !>  Output: grid meta data with weights
+!>
+!> IMPORTANT: this routine overwrites the following mesh arrays:
+!>              weightsOnEdge, nEdgesOnEdge, edgesOnEdge
 !-----------------------------------------------------------------------
   subroutine mpas_consist_weights_on_edge(mesh) !{{{
 

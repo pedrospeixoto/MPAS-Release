@@ -2843,43 +2843,25 @@ module atm_time_integration
          end do
 
          ! Next, nonlinear Coriolis term (q) following Ringler et al JCP 2009
-         !PXT- Use perot style reconstruction TODO
-         if(config_consist_perp .or. config_consistent_scheme)then
-            !call mpas_tang_vel_comp(mesh, u, uReconstructX, uReconstructY, uReconstructZ, v)
-            !print*
-            !print*, iEdge
-            !print*, edgesOnEdge(1:nEdgesOnEdge(iEdge),iEdge)
-            !print*, cellsOnEdge(1,iEdge), cellsOnEdge(2,iEdge)
-            !print*, edgesOnCell(1:nEdgesOnCell(cellsOnEdge(1,iEdge)),cellsOnEdge(1,iEdge)), &
-            !  edgesOnCell(1:nEdgesOnCell(cellsOnEdge(2,iEdge)),cellsOnEdge(2,iEdge))
-            q(:) = 0.0
-           do j = 1,nEdgesOnEdge(iEdge)
-              eoe = edgesOnEdge(j,iEdge)
-              do k=1,nVertLevels
-                 workpv = 0.5 * (pv_edge(k,iEdge) + pv_edge(k,eoe))
-                 q(k) = q(k) + weightsOnEdge(j,iEdge) * u(k,eoe) * workpv * rho_edge(k,eoe)
-                 !Not divided by dcEdge(iEdge) - will show up later
-              end do
-           end do
-         else
-	         q(:) = 0.0
-	         do j = 1,nEdgesOnEdge(iEdge)
-	            eoe = edgesOnEdge(j,iEdge)
-	            do k=1,nVertLevels
-	               workpv = 0.5 * (pv_edge(k,iEdge) + pv_edge(k,eoe))
-	               q(k) = q(k) + weightsOnEdge(j,iEdge) * u(k,eoe) * workpv * rho_edge(k,eoe)
-	               !Not divided by dcEdge(iEdge) - will show up later
-	            end do
-	         end do
-         end if
+         !PXT- The weights are already setup in the consistent scheme
+	       q(:) = 0.0
+	       do j = 1,nEdgesOnEdge(iEdge)
+	          eoe = edgesOnEdge(j,iEdge)
+	          do k=1,nVertLevels
+	             workpv = 0.5 * (pv_edge(k,iEdge) + pv_edge(k,eoe))
+	             q(k) = q(k) + weightsOnEdge(j,iEdge) * u(k,eoe) * workpv * rho_edge(k,eoe)
+	          end do
+	          print*, iEdge, eoe, weightsOnEdge(j,iEdge), q(3)
+	       end do
+
 
          do k=1,nVertLevels
 
             ! horizontal ke gradient and vorticity terms in the vector invariant formulation
             ! of the horizontal momentum equation
-            tend_u(k,iEdge) = tend_u(k,iEdge) + rho_edge(k,iEdge)* (q(k) - (ke(k,cell2) - ke(k,cell1))       &
-                                                                 / dcEdge(iEdge))                            &
-                                             - u(k,iEdge)*0.5*(divergence_ru(k,cell1)+divergence_ru(k,cell2)) 
+            tend_u(k,iEdge) = tend_u(k,iEdge) + rho_edge(k,iEdge)* &
+                                    (q(k) - (ke(k,cell2) - ke(k,cell1))/ dcEdge(iEdge))  &
+                                    - u(k,iEdge)*0.5*(divergence_ru(k,cell1)+divergence_ru(k,cell2))
             if (curvature) then
 
                ! curvature terms for the sphere
@@ -4054,9 +4036,9 @@ module atm_time_integration
 	               v(k,iEdge) = v(k,iEdge) + weightsOnEdge(i,iEdge) * u(k, eoe)
 	            end do
 	         end do
-	        do k = 1,nVertLevels
-               print*, iEdge, nEdges, nEdgesSolve, k, v(k,iEdge), edgesOnEdge(1:nEdgesOnEdge(iEdge),iEdge)
-          end do
+	        !do k = 1,nVertLevels
+               !print*, iEdge, nEdges, nEdgesSolve, k, v(k,iEdge), edgesOnEdge(1:nEdgesOnEdge(iEdge),iEdge)
+          !end do
 	      end do
       !end if
 

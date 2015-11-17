@@ -26,13 +26,13 @@
     config_epssm = 0.1
     config_smdiv = 0.1
     config_apvm_upwinding = 0.5
+    config_hcm_staggering = false 
     config_consistent_scheme = false
-    config_hcm_staggering = false
     config_KE_vecrecon_perot = false
     config_KE_vecrecon_rbf = false
     config_bary_interpol_edge = false
     config_bary_interpol_vertex = false
-    config_consist_perp = false
+    config_consist_perp = true
     config_hollingsworth = true
 /
 
@@ -42,7 +42,7 @@
 /
 
 &decomposition
-   config_block_decomp_file_prefix = '../grids/x1.2562/x1.2562.graph.info.part.' 
+   config_block_decomp_file_prefix = '../grids/x1.2562/x1.2562.graph.info.part.'
 /
 
 &restart
