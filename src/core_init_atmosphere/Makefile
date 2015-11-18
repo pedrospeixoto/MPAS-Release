@@ -2,6 +2,7 @@
 
 OBJS = mpas_init_atm_core.o \
        mpas_init_atm_core_interface.o \
+       mpas_init_hcm_grid.o \
        mpas_init_atm_cases.o \
        mpas_atm_advection.o \
        mpas_init_atm_read_met.o \
@@ -14,8 +15,7 @@ OBJS = mpas_init_atm_core.o \
        read_geogrid.o \
        mpas_atmphys_date_time.o \
        mpas_atmphys_initialize_real.o \
-       mpas_atmphys_utilities.o \
-       mpas_init_hcm_grid.o
+       mpas_atmphys_utilities.o 
 
 all: core_hyd
 
