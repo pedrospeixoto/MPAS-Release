@@ -20,6 +20,7 @@ HCM=1         #1=HCm, 0=HCt
 
 #Output and Diagnostics
 USE_SEP_FILES=1
+USE_REDUCED_OUT=1
 
 #Parameters Runtime 
 #Remmember to pre-set in namelist:
@@ -234,6 +235,17 @@ streams_atmosphere (){
 
 	sed -i "s/output_interval.*/${OUT_INT}/" streams.atmosphere
 	echo ${OUT_INT}
+	
+	#Copy stream_lists
+	cp stream_list.atmosphere.diagnostics.orig stream_list.atmosphere.diagnostics
+	cp stream_list.atmosphere.output.orig stream_list.atmosphere.output
+	cp stream_list.atmosphere.surface.orig stream_list.atmosphere.surface
+	
+	if [ $USE_REDUCED_OUT -eq 1 ] ;then 
+		cp stream_list.atmosphere.output.reduced stream_list.atmosphere.output		
+	else
+		cp stream_list.atmosphere.output.orig stream_list.atmosphere.output
+	fi	
 	
 	}
 	

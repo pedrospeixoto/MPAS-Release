@@ -81,6 +81,8 @@ mpas_atmphys_initialize_real.o:  \
 	mpas_atmphys_date_time.o \
 	mpas_atmphys_utilities.o
 
+mpas_init_hcm_grid.o:
+
 clean:
 	$(RM) *.o *.mod *.f90 libdycore.a
 	$(RM) Registry_processed.xml
