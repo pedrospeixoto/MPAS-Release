@@ -34,6 +34,7 @@ export METIS_PATH=${BASEDIR}/metis
 module load openmpi/1.10.1-intel
 
 #For MAC cluster
+module load git
 module load netcdf/mpi/4.3
 module load pnetcdf/1.6
 export NETCDF_PATH=${NETCDF_BASE}
