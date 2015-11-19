@@ -49,7 +49,8 @@ BAED=0		#Edge interpolation with barycentric coords
 BAVT=0		#Vertex interpolation with barycentric interpolation
 PERP=0		#Consistent perpendicular term
 
-#functions
+#####------------------FUNCTIONS ---------------------------------#########################
+
 #set vars
 function setup_vars (){
 	echo
@@ -259,6 +260,8 @@ function streams_init_atmosphere (){
 	echo ${OUTPUT}
 	}
 	
+	
+#####------------------MAIN ---------------------------------#########################	
 
 #setup vars - sets up $NAME and parameters for namelists/streams
 setup_vars
@@ -287,6 +290,6 @@ streams_atmosphere
 #Clean folder
 rm -rf stream*.tmp
 
-#####------------------FUNCTIONS ---------------------------------#########################
+
 
 
