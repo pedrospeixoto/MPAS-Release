@@ -1,32 +1,19 @@
-grid_rotate: Rotates a spherical NetCDF mesh according to user-specified
-latitude, longitude, and bird's eye rotations
-
-REVISION HISTORY:
-
-    4 Sept 2015 - Generalized the Makefile and added a new NCL script,
-                  mesh_resolution.ncl, that may be used to make a contour
-                  plot of approximate grid resolution. 
-
-   10 July 2013 - Fix issue where angleEdge was overwritten in output files
-                  for meshes that don't provide fEdge and fVertex fields.
-
-   14 June 2013 - Initial public release.
-
-
+grid_hcm: conververts grid to HCm positioning overwritting the edge info
+ 
+This routine is no longer necessary for MPAS-A, since it is possible for select the 
+hcm grid option when generating the initial conditions in init_atmosphere
 
 I. OVERVIEW
 
-   This standalone application rotates a spherical NetCDF mesh and saves the
-   output to a new NetCDF file.  There are three types of rotations that can be
-   performed: a latitude shift, a longitude shift, and a rotation around an
-   arbitrary axis.
+   This standalone application converts a spherical NetCDF mesh to HCm type and saves the
+   output to a new NetCDF file. 
 
    This is a standalone application written in Fortran90.
 
 
 II. BUILDING THE CODE
 
-   This standalone consists of the files: grid_rotate.f90, namelist.input, and
+   This standalone consists of the files: convert_grid_to_hcm.f90 and
    Makefile
 
    Building requires NetCDF and a Fortran compiler.
@@ -36,28 +23,6 @@ II. BUILDING THE CODE
 
 
 III.  RUNNING THE CODE
-
-   Update the namelist.input file to specify the desired location. The variables
-   are:
-      config_original_latitude_degrees
-      config_original_longitude_degrees
-      config_new_latitude_degrees
-      config_new_latitude_degrees
-      config_birdseye_rotation_counter_clockwise_degrees
-
-      config_original_latitude_degrees and config_original_longitude_degrees
-         specify a reference point on the sphere (typically the center of a fine
-         resolution region of the original mesh).
-
-      config_new_latitude_degrees and config_new_latitude_degrees determine the
-         latitude and longitude shift by specifying where the reference point is 
-         rotated to.
-
-      config_birdseye_rotation_counter_clockwise_degrees will adjust the
-         orientation of the mesh with respect to the poles by rotating the mesh
-         counter-clockwise around the reference point as viewed from a bird's eye
-         perspective.
-
 
    Execute the application and specify as command-line arguments the NetCDF file
    that is to be rotated and the name to be given the generated output file.

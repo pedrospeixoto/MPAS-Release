@@ -2851,7 +2851,7 @@ module atm_time_integration
 	             workpv = 0.5 * (pv_edge(k,iEdge) + pv_edge(k,eoe))
 	             q(k) = q(k) + weightsOnEdge(j,iEdge) * u(k,eoe) * workpv * rho_edge(k,eoe)
 	          end do
-	          print*, iEdge, eoe, weightsOnEdge(j,iEdge), q(3)
+	          !print*, iEdge, eoe, weightsOnEdge(j,iEdge), q(3)
 	       end do
 
 

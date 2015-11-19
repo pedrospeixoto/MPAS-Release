@@ -9,8 +9,10 @@
 MPAS_DIR="/scratch/pd300/Work/Programas/MPAS/MPAS-PXT"
 
 #Grid
-GRD_NAME="x1.2562"
+GRD_NAME="x1.10242"
+#GRD_NAME="HR95xxx"
 GRD_DIR=${MPAS_DIR}"/grids/"${GRD_NAME}
+#GRD_DIR=${MPAS_DIR}"/grids/"x1.10242
 
 #Init
 INIT_DIR=${MPAS_DIR}"/jw_tests/init"
@@ -28,7 +30,7 @@ USE_REDUCED_OUT=1
 
 # Time
 DT=60.0
-RUN_NML="config_run_duration = '00:01:00'"
+RUN_NML="config_run_duration = '9_00:00:00'"
 OUT_INT='output_interval="1_00:00:00"'
 
 #Filters and diffusion
@@ -38,10 +40,10 @@ APVM=0.5	#Vorticicy filter (default=0.5)
 HOLS=1		#Use A. Gassmann Hollingsworth correction
 
 #Consistent scheme options
-CONS=0		#Full consistent scheme (overwrites options bellow)
-KPER=1		#Perot kinetic energy
-KRBF=1		#RBF kinetic energy
-BAED=1		#Edge interpolation with barycentric coords
+CONS=1		#Full consistent scheme (overwrites options bellow)
+KPER=0		#Perot kinetic energy
+KRBF=0		#RBF kinetic energy
+BAED=0		#Edge interpolation with barycentric coords
 BAVT=0		#Vertex interpolation with barycentric interpolation
 PERP=0		#Consistent perpendicular term
 

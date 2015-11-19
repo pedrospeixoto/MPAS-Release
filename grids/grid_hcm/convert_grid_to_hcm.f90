@@ -5,7 +5,7 @@
 !
 !
 ! Reads a .nc grid and overwrites the edge position to be relative to
-! the midpoint of the Voronoi cell edges instaead of the Triangle edges.
+! the midpoint of the Voronoi cell edges instead of the Triangle edges midpoints.
 !
 ! Created based on grid_rotate.f90 from MPAS repository
 !

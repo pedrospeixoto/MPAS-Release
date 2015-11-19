@@ -1072,11 +1072,11 @@ module mpas_consistent
        ! But to be sure (in case a different grid structure is read) we perform an
        !  additional check
 
-       print*, iEdge
-       print*, "Original:", edgeNormalVectors(:,iEdge)
-       print*, "New:     ", edgeNormalTmp
-       print*, "Error:   ", sqrt(dot_product(edgeNormalTmp-edgeNormalVectors(:,iEdge), edgeNormalTmp-edgeNormalVectors(:,iEdge) ))
-       print*, "Product: ", dot_product(edgeNormalVectors(:,iEdge), edgeNormalTmp)
+       !print*, iEdge
+       !print*, "Original:", edgeNormalVectors(:,iEdge)
+       !print*, "New:     ", edgeNormalTmp
+       !print*, "Error:   ", sqrt(dot_product(edgeNormalTmp-edgeNormalVectors(:,iEdge), edgeNormalTmp-edgeNormalVectors(:,iEdge) ))
+       !print*, "Product: ", dot_product(edgeNormalVectors(:,iEdge), edgeNormalTmp)
        if(dot_product(edgeNormalVectors(:,iEdge), edgeNormalTmp) < 0) then
          !Change orientation of normal to match previous version method used in MPAS
          !  Should never be necessary
