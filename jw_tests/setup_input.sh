@@ -7,9 +7,11 @@
 
 #Main directory for MPAS
 MPAS_DIR="/scratch/pd300/Work/Programas/MPAS/MPAS-PXT"
+#MPAS_DIR="/scratch/pr63so/di25coq/MPAS-PXT"
+
 
 #Grid
-GRD_NAME="x1.10242"
+GRD_NAME="x1.40962"
 #GRD_NAME="HR95xxx"
 GRD_DIR=${MPAS_DIR}"/grids/"${GRD_NAME}
 #GRD_DIR=${MPAS_DIR}"/grids/"x1.10242
@@ -21,7 +23,7 @@ TC=1          #Test case JW 0,1,2
 HCM=1         #1=HCm, 0=HCt
 
 #Output and Diagnostics
-USE_SEP_FILES=1
+USE_SEP_FILES=0
 USE_REDUCED_OUT=1
 
 #Parameters Runtime 
@@ -29,7 +31,7 @@ USE_REDUCED_OUT=1
 # 1=true, 0=false
 
 # Time
-DT=60.0
+DT=120.0
 RUN_NML="config_run_duration = '9_00:00:00'"
 OUT_INT='output_interval="1_00:00:00"'
 
@@ -47,38 +49,9 @@ BAED=0		#Edge interpolation with barycentric coords
 BAVT=0		#Vertex interpolation with barycentric interpolation
 PERP=0		#Consistent perpendicular term
 
-
-#setup vars - sets up $NAME and parameters for namelists/streams
-setup_vars
-
-#Iinit directory structure
-mkdir -p ${INIT_DIR}
-
-
-#Run directory structure
-mkdir -p ${NAME}
-cd ${NAME}
-ln -sf ${MPAS_DIR}/init_atmosphere_model 
-ln -sf ${MPAS_DIR}/atmosphere_model 
-cp ${MPAS_DIR}/jw_tests/name*.orig .
-cp ${MPAS_DIR}/jw_tests/stream*.orig .
-cp ${MPAS_DIR}/jw_tests/stream_list.* .
-
-# Setup initial conditions
-namelist_init_atmosphere
-streams_init_atmosphere
-
-# Setup run_time conditions
-namelist_atmosphere
-streams_atmosphere
-
-#Clean folder
-rm -rf stream*.tmp
-
-#####------------------FUNCTIONS ---------------------------------#########################
-
+#functions
 #set vars
-setup_vars (){
+function setup_vars (){
 	echo
 	NAME=${GRD_NAME}
 
@@ -177,7 +150,7 @@ setup_vars (){
 
 
 #NAMELIST ATMOSPHERE
-namelist_atmosphere (){
+function namelist_atmosphere (){
 	#backup original
 	cp namelist.atmosphere.orig namelist.atmosphere	
 	echo 
@@ -212,7 +185,7 @@ namelist_atmosphere (){
 	}
 
 #STREAMS.ATM
-streams_atmosphere (){
+function streams_atmosphere (){
 
 	cp streams.atmosphere.orig streams.atmosphere
 	echo 
@@ -254,7 +227,7 @@ streams_atmosphere (){
 
 
 #NAMELIST.INIT
-namelist_init_atmosphere (){
+function namelist_init_atmosphere (){
 	#backup original
 	cp namelist.init_atmosphere.orig namelist.init_atmosphere
 	echo
@@ -271,7 +244,7 @@ namelist_init_atmosphere (){
 	}
 
 #STREAMS.INIT
-streams_init_atmosphere (){
+function streams_init_atmosphere (){
 	cp streams.init_atmosphere.orig streams.init_atmosphere
 	echo
 	echo "Setup for streams.init_atmosphere"
@@ -286,4 +259,34 @@ streams_init_atmosphere (){
 	echo ${OUTPUT}
 	}
 	
+
+#setup vars - sets up $NAME and parameters for namelists/streams
+setup_vars
+
+#Iinit directory structure
+mkdir -p ${INIT_DIR}
+
+
+#Run directory structure
+mkdir -p ${NAME}
+cd ${NAME}
+ln -sf ${MPAS_DIR}/init_atmosphere_model 
+ln -sf ${MPAS_DIR}/atmosphere_model 
+cp ${MPAS_DIR}/jw_tests/name*.orig .
+cp ${MPAS_DIR}/jw_tests/stream*.orig .
+cp ${MPAS_DIR}/jw_tests/stream_list.* .
+
+# Setup initial conditions
+namelist_init_atmosphere
+streams_init_atmosphere
+
+# Setup run_time conditions
+namelist_atmosphere
+streams_atmosphere
+
+#Clean folder
+rm -rf stream*.tmp
+
+#####------------------FUNCTIONS ---------------------------------#########################
+
 
