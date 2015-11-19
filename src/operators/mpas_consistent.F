@@ -567,7 +567,7 @@ module mpas_consistent
 
       implicit none
       type (mpas_pool_type), intent(in) :: mesh     !< Input: Mesh information
-      integer, intent(out) :: iVertex               !< Input: Triangle/vertex index
+      integer, intent(in) :: iVertex               !< Input: Triangle/vertex index
       real (kind=RKIND), dimension(1:3), intent(out) :: bar_coefs !< Output: Barycentric coefficients
 
       integer, pointer:: nCells, nVertices
