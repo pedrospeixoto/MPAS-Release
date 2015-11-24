@@ -225,6 +225,28 @@ cray-nersc:
 	"USE_PAPI = $(USE_PAPI)" \
 	"CPPFLAGS = $(MODEL_FORMULATION) -D_MPI -DUNDERSCORE" )
 
+gnu-mac:
+	( $(MAKE) all \
+	"FC_PARALLEL = mpif90" \
+	"CC_PARALLEL = mpicc" \
+	"CXX_PARALLEL = mpicxx" \
+	"FC_SERIAL = ftn" \
+	"CC_SERIAL = cc" \
+	"CXX_SERIAL = CC" \
+	"FFLAGS_OPT = -O3 -m64 -ffree-form-ftrapv -fc=gfortran -ffree-line-length-none -fdefault-real-8 -fdefault-double-8 -fconvert=big-endian -ffree-form" \
+	"CFLAGS_OPT = -O3 -m64 -ftrapv -cc=gcc" \
+	"CXXFLAGS_OPT = -O3 -m64 -ftrapv -cxx=g++" \
+	"LDFLAGS_OPT = -O3 -m64 -ftrapv" \
+	"FFLAGS_DEBUG = -g -m64 -ftrapv -fc=gfortran -ffree-line-length-none -fdefault-real-8 -fdefault-double-8 -fconvert=big-endian -ffree-form" \
+	"CFLAGS_DEBUG = -g -m64 -ftrapv -cc=gcc" \
+	"CXXFLAGS_DEBUG = -g -m64 -ftrapv -cxx=g++" \
+	"LDFLAGS_DEBUG = -g -m64 -ftrapv" \
+	"CORE = $(CORE)" \
+	"DEBUG = $(DEBUG)" \
+	"SERIAL = $(SERIAL)" \
+	"USE_PAPI = $(USE_PAPI)" \
+	"CPPFLAGS = $(MODEL_FORMULATION) -DUNDERSCORE -D_MPI $(FILE_OFFSET) $(ZOLTAN_DEFINE)" )
+
 gnu-nersc:
 	( $(MAKE) all \
 	"FC_PARALLEL = ftn" \

@@ -68,6 +68,9 @@ export PNETCDF=$PNETCDF_PATH
 export PIO=$PIO_PATH
 
 
+test -n "$1" && exit 0
+
+
 cd $SOURCEDIR
 #GET SOURCES
 if ! [ -f ${SOURCEDIR}/openmpi-1.6.5.tar.gz ]; then
