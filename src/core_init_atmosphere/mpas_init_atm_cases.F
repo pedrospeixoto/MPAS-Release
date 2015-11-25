@@ -200,6 +200,12 @@ module init_atm_cases
             call mpas_pool_get_dimension(block_ptr % dimensions, 'nEdges', nEdges)
             call mpas_pool_get_dimension(block_ptr % dimensions, 'nVertLevels', nVertLevels)
 
+            !Configure grid for modified/consistent scheme
+            if(config_hcm_staggering)then
+              write(0,*) " Converting grid to HCm staggering (config_hcm_staggering=", config_hcm_staggering, ")"
+              call convert_grid_to_hcm(mesh)
+            endif
+
             if (config_static_interp) then
 
                !  
