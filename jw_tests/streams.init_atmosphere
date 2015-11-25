@@ -1,12 +1,12 @@
 <streams>
 <immutable_stream name="input"
                   type="input"
-                  filename_template='../grids/x1.2562/x1.2562.grid.nc'
+                  filename_template='../grids/x1.2621442/HR95HK_009_hcm_grid.nc'
                   input_interval="initial_only" />
 
 <immutable_stream name="output"
                   type="output"
-                  filename_template='../grids/x1.2562/x1.2562.init.nc'
+                  filename_template='HR95HK_009_hcm.init.nc'
                   packages="initial_conds"
                   output_interval="initial_only"
                   clobber_mode="replace_files"
