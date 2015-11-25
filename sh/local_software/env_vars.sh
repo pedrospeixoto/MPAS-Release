@@ -57,7 +57,7 @@ if [[ $host == mac* ]]; then
 	#For GNU
 	export FC=gfortran
 	export F77=gfortran
-	export F90=grortran
+	export F90=gfortran
 	export CC=gcc
 
 	#For Intel - gnarg
@@ -76,21 +76,22 @@ if [[ $host == mac* ]]; then
 elif [[ $host == bgq* ]]; then
 	echo "DETECTED BLUE GENE CLUSTER, LOADING STUFF"
 
-	module unload mpi/xl
-	module load mpi/gcc
+	module unload gcc-bgq/4.4.7
+	module load xl
+	module load mpi/xl
 
 	# setup compile stuff
-	#For GNU
-	export FC=gfortran
-	export F77=gfortran
-	export F90=grortran
-	export CC=gcc
+	#For xl
+	export FC=xlf
+	export F77=xlf
+	export F90=xlf
+	export CC=xlc
 
 	#MPI
-	export MPIFC=mpif90
-	export MPIF90=mpif90
-	export MPIF77=mpif77
-	export MPICC=mpicc
+	export MPIFC=mpixlf2003_r
+	export MPIF90=mpixlf90_r
+	export MPIF77=mpixlf77_r
+	export MPICC=mpixlc_r
 else
 	echo "********************************************************"
 	echo "****************** ENVIRONMENT UNKNOWN *****************"

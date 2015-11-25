@@ -11,7 +11,9 @@ else
                 SRC_LINK="https://github.com/NCAR/ParallelIO/archive/pio1_6_7.zip"
                 FILENAME="`basename $SRC_LINK`"
                 BASENAME="pio1_6_7.zip"
-
+                
+		# On the Blue gene Rice the wget has no zip extention
+		
                 cd "$SRC_DIR"
 
                 if [ ! -e "$FILENAME" ]; then
