@@ -4,15 +4,42 @@
 
 host=`hostname`
 
-if [[ $host == lince* ]]; then
-	#Lince
-	export BASEDIR=/scratch/pedrosp
+if [[ $host == mac* ]]; then
+	echo "DETECTED MAC CLUSTER (AMD), LOADING STUFF"
 	
-elif [[ $host == mac* ]]; then
-
 	#MAC cluster
 	export BASEDIR=/scratch/pr63so/di25coq
+	
+	source /etc/profile.d/modules.sh
 
+	module unload intel
+	module unload mpi.intel
+	module load gcc/4.8
+	module load mpi.intel/5.1_gcc
+	module load binutils
+
+	# setup compile stuff
+	#For GNU
+	export FC=gfortran
+	export F77=gfortran
+	export F90=gfortran
+	export CC=gcc
+
+	#For Intel - gnarg
+	#export FC=ifort
+	#export F77=ifort
+	#export F90=ifort
+	#export CC=icc
+
+	#MPI
+	export MPIFC=mpif90
+	export MPIF90=mpif90
+	export MPIF77=mpif77
+	export MPICC=mpicc
+elif [[ $host == lince* ]]; then
+	#Lince
+	export BASEDIR=/scratch/pedrosp
+	module load openmpi/1.8.3-intel 
 elif [[ $host == cfd* ]]; then
 	#CFD
 	export BASEDIR=/var/tmp/pedrosp/MPAS
@@ -43,7 +70,7 @@ export METIS_PATH=${BASEDIR}/metis
 
 
 #For lince
-#module load openmpi/1.8.3-intel 
+#
 module load openmpi/1.10.1-intel
 
 #For MAC cluster
