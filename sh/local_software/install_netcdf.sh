@@ -5,7 +5,7 @@
 
 echo "*** NETCDF ***"
 if [ "`uname -s`" != "Linux" ]; then
-        echo "This script only supportsLinux systems"
+        echo "This script only supports Linux systems"
 else
         if [ ! -e "$DST_DIR/lib/libnetcdf.so" ]; then
                 SRC_LINK="http://www.unidata.ucar.edu/downloads/netcdf/ftp/netcdf-4.1.3.tar.gz"

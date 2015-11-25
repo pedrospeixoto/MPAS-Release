@@ -71,6 +71,26 @@ if [[ $host == mac* ]]; then
 	export MPIF90=mpif90
 	export MPIF77=mpif77
 	export MPICC=mpicc
+	
+	
+elif [[ $host == bgq* ]]; then
+	echo "DETECTED BLUE GENE CLUSTER, LOADING STUFF"
+
+	module unload mpi/xl
+	module load mpi/gcc
+	module load 
+	# setup compile stuff
+	#For GNU
+	export FC=gfortran
+	export F77=gfortran
+	export F90=grortran
+	export CC=gcc
+
+	#MPI
+	export MPIFC=mpif90
+	export MPIF90=mpif90
+	export MPIF77=mpif77
+	export MPICC=mpicc
 else
 	echo "********************************************************"
 	echo "****************** ENVIRONMENT UNKNOWN *****************"
