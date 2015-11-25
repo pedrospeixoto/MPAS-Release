@@ -78,7 +78,7 @@ elif [[ $host == bgq* ]]; then
 
 	module unload mpi/xl
 	module load mpi/gcc
-	module load 
+
 	# setup compile stuff
 	#For GNU
 	export FC=gfortran
