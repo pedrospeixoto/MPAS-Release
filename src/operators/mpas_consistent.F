@@ -817,7 +817,7 @@ module mpas_consistent
     real(kind=RKIND):: norm
 
     norm=dot_product( p, p)
-    norm=dsqrt(norm)
+    norm=sqrt(norm)
 
     return
   end function norm
