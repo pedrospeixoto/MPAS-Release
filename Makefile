@@ -288,16 +288,17 @@ intel-nersc:
 
 bluegene:
 	( $(MAKE) all \
+	"GEN_F90 = true" \
 	"FC_PARALLEL = mpixlf95_r" \
 	"CC_PARALLEL = mpixlc_r" \
 	"CXX_PARALLEL = mpixlcxx_r" \
 	"FC_SERIAL = bgxlf95_r" \
 	"CC_SERIAL = bgxlc_r" \
-	"CXX_SERIAL = bgxlc++_r" \
-	"FFLAGS_OPT = -O2 -g -qrealsize=8" \
-	"CFLAGS_OPT = -O2 -g" \
-	"CXXFLAGS_OPT = -O2 -g" \
-	"LDFLAGS_OPT = -O2 -g" \
+	"CXX_SERIAL = bgxlcxx_r" \
+	"FFLAGS_OPT = -O3 -g -qrealsize=8 -qinitalloc -qinitauto" \
+	"CFLAGS_OPT = -O3 -g" \
+	"CXXFLAGS_OPT = -O3 -g" \
+	"LDFLAGS_OPT = -O3 -g" \
 	"FFLAGS_DEBUG = -O0 -g -C -qinitalloc -qinitauto -qrealsize=8" \
 	"CFLAGS_DEBUG = -O0 -g" \
 	"CXXFLAGS_DEBUG = -O0 -g" \

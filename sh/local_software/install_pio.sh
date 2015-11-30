@@ -26,6 +26,8 @@ else
 		mv ParallelIO-pio1_6_7 pio1_6_7 || exit 1
                 cd pio1_6_7/pio || exit 1
 
+		#For blue gene disbale netcdf and leave just pnetcdf
+		#./configure --prefix=${DST_DIR} --disable-netcdf --enable-pnetcdf
                 ./configure --prefix=${DST_DIR} || exit 1
 
 		# INTEL HACK for MAC CLUSTER
