@@ -8,16 +8,18 @@
 #Main directory for MPAS
 MPAS_DIR="/scratch/pd300/Work/Programas/MPAS/MPAS-PXT"
 #MPAS_DIR="/scratch/pr63so/di25coq/MPAS-PXT"
-
+#MPAS_DIR="/home/psp2/MPAS-PXT"
+#WORK_DIR="/scratch/psp2/"
+WORK_DIR=$MPAS_DIR
 
 #Grid
 GRD_NAME="x1.40962"
 #GRD_NAME="HR95xxx"
-GRD_DIR=${MPAS_DIR}"/grids/"${GRD_NAME}
+GRD_DIR=${WORK_DIR}"/grids/"${GRD_NAME}
 #GRD_DIR=${MPAS_DIR}"/grids/"x1.10242
 
 #Init
-INIT_DIR=${MPAS_DIR}"/jw_tests/init"
+INIT_DIR=${WORK_DIR}"/jw_tests/init"
 LEVELS=60     #Vertical levels
 TC=1          #Test case JW 0,1,2
 HCM=1         #1=HCm, 0=HCt
