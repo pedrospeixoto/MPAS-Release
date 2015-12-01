@@ -5,11 +5,11 @@
 #   
 #-----------------------------------------------------------#
 
-#Main directory for MPAS
+#Main directory for MPAS - do not put / in the end !!!
 MPAS_DIR="/scratch/pd300/Work/Programas/MPAS/MPAS-PXT"
 #MPAS_DIR="/scratch/pr63so/di25coq/MPAS-PXT"
 #MPAS_DIR="/home/psp2/MPAS-PXT"
-#WORK_DIR="/scratch/psp2/"
+#WORK_DIR="/scratch/psp2"
 WORK_DIR=$MPAS_DIR
 
 #Grid
