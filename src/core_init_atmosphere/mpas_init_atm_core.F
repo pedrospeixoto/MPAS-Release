@@ -18,7 +18,7 @@ module init_atm_core
       use mpas_io_streams, only : MPAS_STREAM_NEAREST
       use mpas_configure
       use init_atm_cases
-   
+
       implicit none
    
       type (domain_type), intent(inout) :: domain
@@ -30,7 +30,6 @@ module init_atm_core
       character (len=StrKIND), pointer :: config_start_time
       real (kind=RKIND), pointer :: sphere_radius
       integer :: ierr
-
 
       ierr = 0
 

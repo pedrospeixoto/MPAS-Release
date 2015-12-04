@@ -101,6 +101,7 @@
 	onEdgeCount(1) = 2
 	onEdgeCount(2) = nEdges
 
+	write(0,*) " Converting grid to HCm staggering" ! (config_hcm_staggering=", config_hcm_staggering, ")"
 	
 	do i=1,nEdges
 
