@@ -1137,18 +1137,13 @@ module init_atm_cases
       type (mpas_pool_type), intent(in) :: configs
       integer, intent(in) :: test_case
 
-      real (kind=RKIND), parameter :: u0 = 35.0
       real (kind=RKIND), parameter :: alpha_grid = 0.  ! no grid rotation
 
-!      real (kind=RKIND), parameter :: omega_e = 7.29212e-05
-      real (kind=RKIND) :: omega_e
+      !Test parameters
+      real (kind=RKIND), parameter :: u0 = 35.0
+      real (kind=RKIND), parameter :: t0b = 288., p0b = 1.0e+05
 
-      real (kind=RKIND), parameter :: t0b = 250., t0 = 288., delta_t = 4.8e+05, dtdz = 0.005, eta_t = 0.2
-      real (kind=RKIND), parameter :: u_perturbation = 1., pert_radius = 0.1, latitude_pert = 40., longitude_pert = 20.
-      real (kind=RKIND), parameter :: theta_c = pii/4.0
-      real (kind=RKIND), parameter :: lambda_c = 3.0*pii/2.0
-      real (kind=RKIND), parameter :: k_x = 9.           ! Normal mode wave number
-
+      !Fields
       real (kind=RKIND), dimension(:), pointer :: rdzw, dzu, rdzu, fzm, fzp
       real (kind=RKIND), dimension(:), pointer :: surface_pressure
       real (kind=RKIND), dimension(:,:), pointer :: zgrid, zx, zz, hx
@@ -1161,7 +1156,6 @@ module init_atm_cases
 !.. initialization of moisture:
       integer, pointer :: index_qv
       real (kind=RKIND), parameter :: rh_max = 0.40 ! Maximum relative humidity
-!      real (kind=RKIND), parameter :: rh_max = 0.70 ! Maximum relative humidity
       real (kind=RKIND), dimension(nVertLevels, nCells) :: qsat, relhum
       real (kind=RKIND), dimension(:,:,:), pointer :: scalars
 !.. end initialization of moisture.
@@ -1180,7 +1174,7 @@ module init_atm_cases
       real (kind=RKIND) :: ptop, p0, phi
       real (kind=RKIND) :: lon_Edge
 
-      real (kind=RKIND) :: r_earth, etavs, ztemp, zd, zt, dz, gam, delt, str
+      real (kind=RKIND) :: r_earth, ctmp, alpha, ztemp, zd, zt, dz, gam, delt, str
 
       real (kind=RKIND) :: es, qvs, xnutr, znut, ptemp
       integer :: iter
@@ -1200,12 +1194,6 @@ module init_atm_cases
       logical, parameter :: rebalance = .true.
       integer, parameter :: nlat=721
       real (kind=RKIND), dimension(nVertLevels) :: flux_zonal
-      real (kind=RKIND), dimension(nVertLevels + 1, nlat) :: zgrid_2d
-      real (kind=RKIND), dimension(nVertLevels, nlat) :: u_2d, pp_2d, rho_2d, qv_2d, etavs_2d, zz_2d
-      real (kind=RKIND), dimension(nVertLevels, nlat) :: p_2d, pb_2d, ppb_2d, rr_2d, rb_2d, tb_2d, rtb_2d
-      real (kind=RKIND), dimension(nVertLevels, nlat-1) :: zx_2d
-      real (kind=RKIND), dimension(nlat) :: lat_2d
-      real (kind=RKIND) :: dlat, hx_1d
       real (kind=RKIND) :: z_edge, z_edge3, d2fdx2_cell1, d2fdx2_cell2
 
 !      logical, parameter :: moisture = .true.
@@ -1217,7 +1205,7 @@ module init_atm_cases
       real (kind=RKIND), dimension(:), pointer :: dcEdge, dvEdge, areaCell, areaTriangle
       real (kind=RKIND), dimension(:,:), pointer :: kiteAreasOnVertex
 
-      real (kind=RKIND), dimension(:), pointer :: latCell, latVertex, lonVertex, latEdge, lonEdge
+      real (kind=RKIND), dimension(:), pointer :: latCell, latVertex, lonVertex, latEdge, lonEdge, angleEdge
       real (kind=RKIND), dimension(:), pointer :: fEdge, fVertex
 
       real (kind=RKIND), pointer :: sphere_radius
@@ -1325,6 +1313,7 @@ module init_atm_cases
       call mpas_pool_get_array(mesh, 'lonEdge', lonEdge)
       call mpas_pool_get_array(mesh, 'fEdge', fEdge)
       call mpas_pool_get_array(mesh, 'fVertex', fVertex)
+      call mpas_pool_get_array(mesh, 'angleEdge', angleEdge)
 
       call mpas_pool_get_array(mesh, 'cf1', cf1)
       call mpas_pool_get_array(mesh, 'cf2', cf2)
@@ -1334,57 +1323,36 @@ module init_atm_cases
       scalars(:,:,:) = 0.0
       qsat(:,:)      = 0.0
       relhum(:,:)    = 0.0
-      qv_2d(:,:)     = 0.0
 !.. end initialization of moisture.
-      print*, "NEWWW TC"
 
-      surface_pressure(:) = 0.0
 
       call atm_initialize_advection_rk(mesh, nCells, nEdges, maxEdges, on_a_sphere, sphere_radius )
       call atm_initialize_deformation_weights(mesh, nCells, on_a_sphere, sphere_radius)
 
       call mpas_pool_get_dimension(state, 'index_qv', index_qv)
 
+      !For top damping
       xnutr = 0.0
       zd = 12000.0
-      znut = eta_t
+      !znut = eta_t
 
-      etavs = (1.0 - 0.252) * pii/2.
       r_earth = sphere_radius
-      omega_e = omega
-      p0 = 1.0e+05
-
-      write(0,*) ' point 1 in test case setup '
 
     !The surface geopotential is null for this case - the pressure will balance the Coriolis and centrigugal forces
 
       hx(:,:)=0.0
 
-      !do iCell=1,nCells
-      !  do k=1,nz
-      !    phi = latCell(iCell)
-      !    hx(k,iCell) = u0/gravity*cos(etavs)**1.5                                   &
-      !                *((-2.*sin(phi)**6                                   &
-      !                      *(cos(phi)**2+1./3.)+10./63.)                  &
-      !                      *(u0)*cos(etavs)**1.5                          &
-      !                 +(1.6*cos(phi)**3                                   &
-      !                      *(sin(phi)**2+2./3.)-pii/4.)*r_earth*omega_e)
-      !  end do
-      !end do
-
       !     Metrics for hybrid coordinate and vertical stretching
-
       str = 1.5
-      zt = 45000.
+      zt = 12000.
       dz = zt/float(nz1)
-
-      write(0,*) ' hx computation complete '
 
       do k=1,nz
 
 !           sh(k) is the stretching specified for height surfaces
 
-            sh(k) = (real(k-1)*dz/zt)**str
+            !sh(k) = (real(k-1)*dz/zt)**str
+            sh(k)=real(k-1)*dz/zt
 
 !           to specify specific heights zc(k) for coordinate surfaces,
 !           input zc(k) and define sh(k) = zc(k)/zt
@@ -1402,8 +1370,8 @@ module init_atm_cases
 !                ah(k) = 0 is a terrain-following coordinate
 !                ah(k) = 1 is a height coordinate
 
-            ah(k) = 1.-cos(.5*pii*(k-1)*dz/zt)**6
-!            ah(k) = 0.
+!            ah(k) = 1.-cos(.5*pii*(k-1)*dz/zt)**6
+            ah(k) = 0. !Does not make a difference in this case - no terrain
             write(0,*) ' k, sh, zw, ah ',k,sh(k),zw(k),ah(k)
       end do
       do k=1,nz1
@@ -1475,307 +1443,60 @@ module init_atm_cases
 
       write(0,*) ' grid metrics setup complete '
 
-!**************  section for 2d (z,lat) calc for zonal velocity
-
-      dlat = 0.5*pii/float(nlat-1)
-      do i = 1,nlat
-
-        lat_2d(i) = float(i-1)*dlat
-        phi = lat_2d(i)
-        hx_1d    = u0/gravity*cos(etavs)**1.5                           &
-                   *((-2.*sin(phi)**6                                   &
-                         *(cos(phi)**2+1./3.)+10./63.)                  &
-                         *(u0)*cos(etavs)**1.5                          &
-                    +(1.6*cos(phi)**3                                   &
-                         *(sin(phi)**2+2./3.)-pii/4.)*r_earth*omega_e)
-
-        do k=1,nz
-          zgrid_2d(k,i) = (1.-ah(k))*(sh(k)*(zt-hx_1d)+hx_1d)  &
-                         + ah(k) * sh(k)* zt
-        end do
-        do k=1,nz1
-          zz_2d(k,i) = (zw(k+1)-zw(k))/(zgrid_2d(k+1,i)-zgrid_2d(k,i))
-        end do
-
-        do k=1,nz1
-          ztemp    = .5*(zgrid_2d(k+1,i)+zgrid_2d(k,i))
-          ppb_2d(k,i) = p0*exp(-gravity*ztemp/(rgas*t0b))
-          pb_2d(k,i) = (ppb_2d(k,i)/p0)**(rgas/cp)
-          rb_2d(k,i) = ppb_2d(k,i)/(rgas*t0b*zz_2d(k,i))
-          tb_2d(k,i) = t0b/pb_2d(k,i)
-          rtb_2d(k,i) = rb_2d(k,i)*tb_2d(k,i)
-          p_2d(k,i) = pb_2d(k,i)
-          pp_2d(k,i) = 0.0
-          rr_2d(k,i) = 0.0
-        end do
-
-
-        do itr = 1,10
-
-          do k=1,nz1
-            eta (k) = (ppb_2d(k,i)+pp_2d(k,i))/p0
-            etav(k) = (eta(k)-.252)*pii/2.
-            if(eta(k) >= znut)  then
-              teta(k) = t0*eta(k)**(rgas*dtdz/gravity)
-            else
-              teta(k) = t0*eta(k)**(rgas*dtdz/gravity) + delta_t*(znut-eta(k))**5
-            end if
-          end do
-
-          phi = lat_2d(i)
-          do k=1,nz1
-            temperature_1d(k) = teta(k)+.75*eta(k)*pii*u0/rgas*sin(etav(k))      &
-                            *sqrt(cos(etav(k)))*                   &
-                              ((-2.*sin(phi)**6                    &
-                                   *(cos(phi)**2+1./3.)+10./63.)   &
-                                   *2.*u0*cos(etav(k))**1.5        &
-                              +(1.6*cos(phi)**3                    &
-                                *(sin(phi)**2+2./3.)-pii/4.)*r_earth*omega_e)/(1.+0.61*qv_2d(k,i))
-
-
-            ztemp   = .5*(zgrid_2d(k,i)+zgrid_2d(k+1,i))
-            ptemp   = ppb_2d(k,i) + pp_2d(k,i)
-
-            !get moisture
-            if (moisture) then
-              qv_2d(k,i) = env_qv( ztemp, temperature_1d(k), ptemp, rh_max )
-            end if
-
-            tt(k) = temperature_1d(k)*(1.+1.61*qv_2d(k,i))
-          end do
-
-          do itrp = 1,25
-            do k=1,nz1
-              rr_2d(k,i)  = (pp_2d(k,i)/(rgas*zz_2d(k,i)) - rb_2d(k,i)*(tt(k)-t0b))/tt(k)
-            end do
-
-            ppi(1) = p0-.5*dzw(1)*gravity                            &
-                          *(1.25*(rr_2d(1,i)+rb_2d(1,i))*(1.+qv_2d(1,i))   &
-                            -.25*(rr_2d(2,i)+rb_2d(2,i))*(1.+qv_2d(2,i)))
-
-            ppi(1) = ppi(1)-ppb_2d(1,i)
-            do k=1,nz1-1
-
-              ppi(k+1) = ppi(k)-dzu(k+1)*gravity*                                       &
-                            ( (rr_2d(k  ,i)+(rr_2d(k  ,i)+rb_2d(k  ,i))*qv_2d(k  ,i))*fzp(k+1)   &
-                            + (rr_2d(k+1,i)+(rr_2d(k+1,i)+rb_2d(k+1,i))*qv_2d(k+1,i))*fzm(k+1) )
-            end do
-
-            do k=1,nz1
-              pp_2d(k,i) = .2*ppi(k)+.8*pp_2d(k,i)
-            end do
-
-          end do  ! end inner iteration loop itrp
-
-        end do  ! end outer iteration loop itr
-
-        do k=1,nz1
-          rho_2d(k,i) = rr_2d(k,i)+rb_2d(k,i)
-          etavs_2d(k,i) = ((ppb_2d(k,i)+pp_2d(k,i))/p0 - 0.252)*pii/2.
-          u_2d(k,i) = u0*(sin(2.*lat_2d(i))**2) *(cos(etavs_2d(k,i))**1.5)
-        end do
-
-      end do  ! end loop over latitudes for 2D zonal wind field calc
-
-      !SHP-balance:: in case of rebalacing for geostrophic wind component
-      if (rebalance) then
-
-        do i=1,nlat-1
-          do k=1,nz1
-            zx_2d(k,i) = (zgrid_2d(k,i+1)-zgrid_2d(k,i))/(dlat*r_earth)
-          end do
-        end do
-
-        call init_atm_recompute_geostrophic_wind(u_2d, rho_2d, pp_2d, qv_2d, lat_2d, zz_2d, zx_2d,     &
-                                        cf1, cf2, cf3, fzm, fzp, rdzw, nz1, nlat, dlat, sphere_radius)
-
-      end if
-
-!******************************************************************
-
 !
-!---- baroclinc wave initialization ---------------------------------
+!---- sbr initialization ---------------------------------
 !
 !     reference sounding based on dry isothermal atmosphere
 !
+      ctmp = u0*u0/r_earth+2.0*omega*u0
       do i=1, nCells
         do k=1,nz1
+          !Height
           ztemp    = .5*(zgrid(k+1,i)+zgrid(k,i))
-          ppb(k,i) = p0*exp(-gravity*ztemp/(rgas*t0b))
-          pb (k,i) = (ppb(k,i)/p0)**(rgas/cp)
-          rb (k,i) = ppb(k,i)/(rgas*t0b*zz(k,i))
-          tb (k,i) = t0b/pb(k,i)
-          rtb(k,i) = rb(k,i)*tb(k,i)
-          p  (k,i) = pb(k,i)
-          pp (k,i) = 0.
-          rr (k,i) = 0.
-        end do
-
-!       if(i == 1) then
-!         do k=1,nz1
-!           write(0,*) ' k, ppb, pb, rb, tb (k,1) ',k,ppb(k,1),pb(k,1),rb(k,1)*zz(k,1),tb(k,1)
-!         end do
-!       end if
-
-      200 format(4i6,8(1x,e15.8))
-      201 format(3i6,8(1x,e15.8))
-      202 format(2i6,10(1x,e15.8))
-      203 format(i6,10(1x,e15.8))
-
-!     iterations to converge temperature as a function of pressure
-!
-        do itr = 1,10
-
-          do k=1,nz1
-            eta (k) = (ppb(k,i)+pp(k,i))/p0
-            etav(k) = (eta(k)-.252)*pii/2.
-            if(eta(k).ge.znut)  then
-              teta(k) = t0*eta(k)**(rgas*dtdz/gravity)
-            else
-              teta(k) = t0*eta(k)**(rgas*dtdz/gravity) + delta_t*(znut-eta(k))**5
-            end if
-          end do
+          !Latitude
           phi = latCell(i)
-          do k=1,nz1
-            temperature_1d(k) = teta(k)+.75*eta(k)*pii*u0/rgas*sin(etav(k))      &
-                            *sqrt(cos(etav(k)))*                   &
-                              ((-2.*sin(phi)**6                    &
-                                   *(cos(phi)**2+1./3.)+10./63.)   &
-                                   *2.*u0*cos(etav(k))**1.5        &
-                              +(1.6*cos(phi)**3                    &
-                                *(sin(phi)**2+2./3.)-pii/4.)*r_earth*omega_e)/(1.+0.61*scalars(index_qv,k,i))
-
-            ztemp   = .5*(zgrid(k,i)+zgrid(k+1,i))
-            ptemp   = ppb(k,i) + pp(k,i)
-
-            !get moisture
-            if (moisture) then
-
-                !scalars(index_qv,k,i) = env_qv( ztemp, temperature_1d(k), ptemp, rh_max )
-
-               if(ptemp < 50000.) then
-                  relhum(k,i) = 0.0
-               elseif(ptemp > p0) then
-                  relhum(k,i) = 1.0
-               else
-                  relhum(k,i) = (1.-((p0-ptemp)/50000.)**1.25)
-               end if
-               relhum(k,i) = min(rh_max,relhum(k,i))
-
-               !.. calculation of water vapor mixing ratio:
-               if (temperature_1d(k) > 273.15) then
-                   es  = 1000.*0.6112*exp(17.67*(temperature_1d(k)-273.15)/(temperature_1d(k)-29.65))
-               else
-                   es  = 1000.*0.6112*exp(21.8745584*(temperature_1d(k)-273.15)/(temperature_1d(k)-7.66))
-               end if
-               qsat(k,i) = (287.04/461.6)*es/(ptemp-es)
-               if(relhum(k,i) .eq. 0.0) qsat(k,i) = 0.0
-               scalars(index_qv,k,i) = relhum(k,i)*qsat(k,i)
-            end if
-
-            tt(k) = temperature_1d(k)*(1.+1.61*scalars(index_qv,k,i))
-
-          end do
-
-          do itrp = 1,25
-            do k=1,nz1
-              rr(k,i)  = (pp(k,i)/(rgas*zz(k,i)) - rb(k,i)*(tt(k)-t0b))/tt(k)
-            end do
-
-            ppi(1) = p0-.5*dzw(1)*gravity                         &
-                          *(1.25*(rr(1,i)+rb(1,i))*(1.+scalars(index_qv,1,i))   &
-                            -.25*(rr(2,i)+rb(2,i))*(1.+scalars(index_qv,2,i)))
-
-            ppi(1) = ppi(1)-ppb(1,i)
-            do k=1,nz1-1
-
-!              ppi(k+1) = ppi(k)-.5*dzu(k+1)*gravity*                     &
-!                            (rr(k  ,i)+(rr(k  ,i)+rb(k  ,i))*scalars(index_qv,k  ,i)   &
-!                            +rr(k+1,i)+(rr(k+1,i)+rb(k+1,i))*scalars(index_qv,k+1,i))
-
-               ppi(k+1) = ppi(k)-dzu(k+1)*gravity*                                                  &
-                             ( (rr(k  ,i)+(rr(k  ,i)+rb(k  ,i))*scalars(index_qv,k  ,i))*fzp(k+1)   &
-                             + (rr(k+1,i)+(rr(k+1,i)+rb(k+1,i))*scalars(index_qv,k+1,i))*fzm(k+1) )
-
-            end do
-
-            do k=1,nz1
-              pp(k,i) = .2*ppi(k)+.8*pp(k,i)
-            end do
-
-          end do  ! end inner iteration loop itrp
-
-        end do  ! end outer iteration loop itr
-
-        do k=1,nz1
-          p (k,i) = ((ppb(k,i)+pp(k,i))/p0)**(rgas/cp)
-          t (k,i) = tt(k)/p(k,i)
-          rt (k,i) = t(k,i)*rr(k,i)+rb(k,i)*(t(k,i)-tb(k,i))
+          !Surface pressure
+          surface_pressure(i)=p0b*exp(0.5*r_earth*ctmp*sin(phi)**2/(rgas*t0b))
+          !Pressure_base
+          ppb(k,i) = surface_pressure(i)*exp((ctmp*cos(phi)**2-gravity)*ztemp/(rgas*t0b))
+          !Exener pressure
+          pb (k,i) = (ppb(k,i)/p0b)**(rgas/cp)
+          !Density of dry air (rho/zeta_z)
+          rb (k,i) = ppb(k,i)/(rgas*t0b*zz(k,i))
+          !Pot temp
+          tb (k,i) = t0b/pb(k,i)
+          !rho * pot temp
+          rtb(k,i) = rb(k,i)*tb(k,i)
+          !Exener pressure
+          p  (k,i) = pb(k,i)
+          !pressure perturbation
+          pp (k,i) = 0.
+          !density perturbation
+          rr (k,i) = 0.
+          !Moist pot temp
+          t (k,i) = tb (k,i)
+          !Vertical velocity
+          w(k,i)  = 0.0
+          !density total
           rho_zz (k,i) = rb(k,i) + rr(k,i)
         end do
 
-        !calculation of surface pressure:
-        surface_pressure(i) = 0.5*dzw(1)*gravity                                    &
-                        * (1.25*(rr(1,i) + rb(1,i)) * (1. + scalars(index_qv,1,i))  &
-                        -  0.25*(rr(2,i) + rb(2,i)) * (1. + scalars(index_qv,2,i)))
-        surface_pressure(i) = surface_pressure(i) + pp(1,i) + ppb(1,i)
+       if(i == 1) then
+         do k=1,nz1
+           write(0,*) ' k, z, pres, exener, rho, pot_temp (k,1) ',k, .5*(zgrid(k+1,i)+zgrid(k,i)), ppb(k,1),pb(k,1),rb(k,1)*zz(k,1),tb(k,1)
+         end do
+       end if
 
       end do  ! end loop over cells
 
-      !write(0,*)
-      !write(0,*) '--- initialization of water vapor:'
-      !do iCell = 1, nCells
-      !   if(iCell == 1 .or. iCell == nCells) then
-      !      do k = nz1, 1, -1
-      !         write(0,202) iCell,k,t(k,iCell),relhum(k,iCell),qsat(k,iCell),scalars(index_qv,k,iCell)
-      !      end do
-      !      write(0,*)
-      !   end if
-      !end do
-
-      lat_pert = latitude_pert*pii/180.
-      lon_pert = longitude_pert*pii/180.
-
       do iEdge=1,nEdges
 
-         vtx1 = verticesOnEdge(1,iEdge)
-         vtx2 = verticesOnEdge(2,iEdge)
-         lat1 = latVertex(vtx1)
-         lat2 = latVertex(vtx2)
-         iCell1 = cellsOnEdge(1,iEdge)
-         iCell2 = cellsOnEdge(2,iEdge)
-         flux = (0.5*(lat2-lat1) - 0.125*(sin(4.*lat2) - sin(4.*lat1))) * sphere_radius / dvEdge(iEdge)
+         alpha=angleEdge(iEdge)
+         phi=latEdge(iEdge)
+         do k=1,nVertLevels
+           u(k,iEdge) = u0*cos(alpha)*cos(phi)
+         end do
 
-         if (config_init_case == 2) then
-            r_pert = sphere_distance( latEdge(iEdge), lonEdge(iEdge), &
-                                      lat_pert, lon_pert, 1.0_RKIND)/(pert_radius)
-            u_pert = u_perturbation*exp(-r_pert**2)*(lat2-lat1) * sphere_radius / dvEdge(iEdge)
-
-         else if (config_init_case == 3) then
-            lon_Edge = lonEdge(iEdge)
-            u_pert = u_perturbation*cos(k_x*(lon_Edge - lon_pert)) &
-                         *(0.5*(lat2-lat1) - 0.125*(sin(4.*lat2) - sin(4.*lat1))) * sphere_radius / dvEdge(iEdge)
-         else
-            u_pert = 0.0
-         end if
-
-         if (rebalance) then
-
-           call init_atm_calc_flux_zonal(u_2d,etavs_2d,lat_2d,flux_zonal,lat1,lat2,dvEdge(iEdge),sphere_radius,u0,nz1,nlat)
-           do k=1,nVertLevels
-             fluxk = u0*flux_zonal(k)/(0.5*(rb(k,iCell1)+rb(k,iCell2)+rr(k,iCell1)+rr(k,iCell2)))
-             u(k,iEdge) = fluxk + u_pert
-           end do
-
-         else
-
-           do k=1,nVertLevels
-             etavs = (0.5*(ppb(k,iCell1)+ppb(k,iCell2)+pp(k,iCell1)+pp(k,iCell2))/p0 - 0.252)*pii/2.
-             fluxk = u0*flux*(cos(etavs)**1.5)
-             u(k,iEdge) = fluxk + u_pert
-           end do
-
-         end if
 
          cell1 = cellsOnEdge(1,iEdge)
          cell2 = cellsOnEdge(2,iEdge)
@@ -1787,14 +1508,14 @@ module init_atm_cases
       ! Generate rotated Coriolis field
       !
 
-         fEdge(iEdge) = 2.0 * omega_e * &
+         fEdge(iEdge) = 2.0 * omega * &
                                        ( -cos(lonEdge(iEdge)) * cos(latEdge(iEdge)) * sin(alpha_grid) + &
                                          sin(latEdge(iEdge)) * cos(alpha_grid) &
                                        )
       end do
 
       do iVtx=1,nVertices
-         fVertex(iVtx) = 2.0 * omega_e * &
+         fVertex(iVtx) = 2.0 * omega * &
                                          (-cos(lonVertex(iVtx)) * cos(latVertex(iVtx)) * sin(alpha_grid) + &
                                           sin(latVertex(iVtx)) * cos(alpha_grid) &
                                          )

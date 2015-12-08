@@ -9,13 +9,13 @@ begin
    ; Whether to generate remapping weight files, or 
    ;   to actually regrid fields
    ;
-   gen_weights = True
+   gen_weights = False
    regrid = True
 
    ;
    ;... read input MPAS files:
    ;
-   files = systemfunc("ls history.*.nc")
+   files = systemfunc("ls x1*.nc")
    f = addfiles(files,"r")
 
    ;
@@ -46,7 +46,7 @@ begin
    ;
    ;... get dimension sizes and predefine the coordinate variables and their dimensionality:
    ;
-   mpas = f[:]->qv
+   mpas = f[:]->surface_pressure
 
    dims = dimsizes(mpas)
    rank = dimsizes(dims)
@@ -131,9 +131,9 @@ begin
       filevardef(fout,"latitude" ,typeof(lat)  ,(/"lat"/))
       filevardef(fout,"longitude",typeof(lon)  ,(/"lon"/))
       if (rank .eq. 4) then
-         filevardef(fout,"qv",typeof(mpas_regrid),(/"Time","levels","lat","lon"/))
+         filevardef(fout,"fld",typeof(mpas_regrid),(/"Time","levels","lat","lon"/))
       else
-         filevardef(fout,"q2",typeof(mpas_regrid),(/"Time","lat","lon"/))
+         filevardef(fout,"fld",typeof(mpas_regrid),(/"Time","lat","lon"/))
       end if
 
       ;
@@ -141,7 +141,7 @@ begin
       ;
       fout->latitude  = (/lat/)
       fout->longitude = (/lon/)
-      fout->qv = (/mpas_regrid/)
+      fout->fld = (/mpas_regrid/)
 
    end if
    end if
