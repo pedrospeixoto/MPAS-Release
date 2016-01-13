@@ -156,7 +156,8 @@ module atm_time_integration
       type (field2DReal), pointer :: pv_edge_field
       type (field2DReal), pointer :: rho_edge_field
 
-      real (kind=RKIND), dimension(:,:), pointer :: w, p
+      !real (kind=RKIND), dimension(:,:), pointer :: w, p  !PXT
+      real (kind=RKIND), dimension(:,:), pointer :: w
       real (kind=RKIND), dimension(:,:), pointer :: u, uReconstructZonal, uReconstructMeridional, uReconstructX, uReconstructY, uReconstructZ
       real (kind=RKIND), dimension(:,:,:), pointer :: scalars, scalars_1, scalars_2
 
@@ -611,7 +612,7 @@ module atm_time_integration
 
             call mpas_pool_get_array(state, 'w', w, 2)
             call mpas_pool_get_array(state, 'u', u, 2)
-            call mpas_pool_get_array(diag, 'pressure_p', p, 2)
+            !call mpas_pool_get_array(diag, 'pressure_p', p, 2) !PXT
             call mpas_pool_get_dimension(state, 'nCellsSolve', nCellsSolve)
             call mpas_pool_get_dimension(state, 'nEdgesSolve', nEdgesSolve)
             call mpas_pool_get_dimension(state, 'nVertLevels', nVertLevels)
@@ -640,17 +641,17 @@ module atm_time_integration
             call mpas_dmpar_max_real(domain % dminfo, scalar_max, global_scalar_max)
             write(0,*) 'global min, max u ', global_scalar_min, global_scalar_max
 
-            scalar_min = 0.0
-            scalar_max = 0.0
-            do iCell = 1, nCellsSolve
-            do k = 1, nVertLevels
-               scalar_min = min(scalar_min, p(k,iCell))
-               scalar_max = max(scalar_max, p(k,iCell))
-            end do
-            end do
-            call mpas_dmpar_min_real(domain % dminfo, scalar_min, global_scalar_min)
-            call mpas_dmpar_max_real(domain % dminfo, scalar_max, global_scalar_max)
-            write(0,*) 'global min, max p ', global_scalar_min, global_scalar_max
+            !scalar_min = 0.0
+            !scalar_max = 0.0
+            !do iCell = 1, nCellsSolve
+            !do k = 1, nVertLevels
+            !   scalar_min = min(scalar_min, p(k,iCell))
+            !   scalar_max = max(scalar_max, p(k,iCell))
+            !end do
+            !end do
+            !call mpas_dmpar_min_real(domain % dminfo, scalar_min, global_scalar_min)
+            !call mpas_dmpar_max_real(domain % dminfo, scalar_max, global_scalar_max)
+            !write(0,*) 'global min, max p ', global_scalar_min, global_scalar_max
 
             block => block % next
          end do
