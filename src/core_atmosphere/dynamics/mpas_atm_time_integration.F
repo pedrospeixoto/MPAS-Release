@@ -3752,7 +3752,7 @@ module atm_time_integration
       real (kind=RKIND) :: ke_fact
 
       !PXT - Height at vertices
-      real (kind=RKIND) :: zgrid_vertex
+      real (kind=RKIND) :: zgrid_vertex, zgrid_cell
 	  real (kind=RKIND), pointer :: r_earth
 
       real (kind=RKIND), pointer :: config_apvm_upwinding
@@ -4095,18 +4095,18 @@ module atm_time_integration
            !PXT - The barycentric coefficients should be pre-calculated for performance
            call mpas_barycentric_coefs_vertex(iVertex, mesh, bar_coefs)
            do k=1,nVertLevels
-           	  print*, k
               h_vertex = 0.0
               zgrid_vertex=0.0
               do i=1,vertexDegree
                  h_vertex = h_vertex + h(k,cellsOnVertex(i,iVertex)) * bar_coefs(i)
                  !interpolate height to vertex points for dynamically consistent equations
-                 zgrid_vertex = zgrid_vertex + zgrid(k,cellsOnVertex(i,iVertex)) * bar_coefs(i)
+                 zgrid_cell=0.5*(zgrid(k,cellsOnVertex(i,iVertex))+zgrid(k+1,cellsOnVertex(i,iVertex)))
+                 zgrid_vertex = zgrid_vertex + zgrid_cell * bar_coefs(i)
               end do
               coef_coriolis=1.0+coef_consistent_dyn*2.0*zgrid_vertex/r_earth
-              if(iVertex==1)then
-              	print*, k, coef_coriolis, coef_consistent_dyn, zgrid_vertex, r_earth
-              end if
+              !if(iVertex==1)then
+              	!print*, k, coef_coriolis, coef_consistent_dyn, zgrid_vertex, r_earth
+              !end if
 
               !Some halos are null, but will not be used later, so protect from errors
               !  This can be optimized by changing the way the bary interpol deal with halos
@@ -4124,15 +4124,23 @@ module atm_time_integration
         end do
       else
         !Original method
+        !PXT - added possibility of consistent dynamics
         !print*, "original"
 	      do iVertex = 1,nVertices
 	         do k=1,nVertLevels
 	            h_vertex = 0.0
+	            zgrid_vertex=0.0
 	            do i=1,vertexDegree
 	               h_vertex = h_vertex + h(k,cellsOnVertex(i,iVertex)) * kiteAreasOnVertex(i,iVertex)
+	               zgrid_cell=0.5*(zgrid(k,cellsOnVertex(i,iVertex))+zgrid(k+1,cellsOnVertex(i,iVertex)))
+                   zgrid_vertex = zgrid_vertex + zgrid_cell * kiteAreasOnVertex(i,iVertex)
 	            end do
-	            pv_vertex(k,iVertex) = (fVertex(iVertex) + vorticity(k,iVertex)) * areaTriangle(iVertex) / h_vertex
-
+	            zgrid_vertex = zgrid_vertex/areaTriangle(iVertex)
+	            coef_coriolis=1.0+coef_consistent_dyn*2.0*zgrid_vertex/r_earth
+	            pv_vertex(k,iVertex) = (fVertex(iVertex)*coef_coriolis + vorticity(k,iVertex)) * areaTriangle(iVertex) / h_vertex
+			  !if(iVertex==1)then
+              !	print*, k, coef_coriolis, coef_consistent_dyn, zgrid_vertex, r_earth, pv_vertex(k,iVertex)
+              !end if
 	            !print*, iVertex, k, h_vertex, pv_vertex(k,iVertex), vorticity(k,iVertex)
               !print*, h(k,cellsOnVertex(1,iVertex)), h(k,cellsOnVertex(2,iVertex)), h(k,cellsOnVertex(3,iVertex))
               !print*, kiteAreasOnVertex(1,iVertex), kiteAreasOnVertex(2,iVertex), kiteAreasOnVertex(3,iVertex)
