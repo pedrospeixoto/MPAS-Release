@@ -156,7 +156,7 @@ module atm_time_integration
       type (field2DReal), pointer :: pv_edge_field
       type (field2DReal), pointer :: rho_edge_field
 
-      real (kind=RKIND), dimension(:,:), pointer :: w
+      real (kind=RKIND), dimension(:,:), pointer :: w, p
       real (kind=RKIND), dimension(:,:), pointer :: u, uReconstructZonal, uReconstructMeridional, uReconstructX, uReconstructY, uReconstructZ
       real (kind=RKIND), dimension(:,:,:), pointer :: scalars, scalars_1, scalars_2
 
@@ -611,6 +611,7 @@ module atm_time_integration
 
             call mpas_pool_get_array(state, 'w', w, 2)
             call mpas_pool_get_array(state, 'u', u, 2)
+            call mpas_pool_get_array(diag, 'pressure_p', p, 2)
             call mpas_pool_get_dimension(state, 'nCellsSolve', nCellsSolve)
             call mpas_pool_get_dimension(state, 'nEdgesSolve', nEdgesSolve)
             call mpas_pool_get_dimension(state, 'nVertLevels', nVertLevels)
@@ -638,6 +639,18 @@ module atm_time_integration
             call mpas_dmpar_min_real(domain % dminfo, scalar_min, global_scalar_min)
             call mpas_dmpar_max_real(domain % dminfo, scalar_max, global_scalar_max)
             write(0,*) 'global min, max u ', global_scalar_min, global_scalar_max
+
+            scalar_min = 0.0
+            scalar_max = 0.0
+            do iCell = 1, nCellsSolve
+            do k = 1, nVertLevels
+               scalar_min = min(scalar_min, p(k,iCell))
+               scalar_max = max(scalar_max, p(k,iCell))
+            end do
+            end do
+            call mpas_dmpar_min_real(domain % dminfo, scalar_min, global_scalar_min)
+            call mpas_dmpar_max_real(domain % dminfo, scalar_max, global_scalar_max)
+            write(0,*) 'global min, max p ', global_scalar_min, global_scalar_max
 
             block => block % next
          end do
@@ -3724,7 +3737,7 @@ module atm_time_integration
 
       !PXT - Added reconstruction to solve_diagnostics
       real (kind=RKIND), dimension(:,:), pointer :: uReconstructX, uReconstructY, uReconstructZ, &
-                                                    uReconstructZonal, uReconstructMeridional
+                                                    uReconstructZonal, uReconstructMeridional, zgrid
 
       !PXT - Added temp vars
       real (kind=RKIND), dimension(1:3) :: bar_coefs
@@ -3733,12 +3746,19 @@ module atm_time_integration
       !PXT - This might become of no use for now, since this is now a parameter read from namelist (usefull for testing)
       logical, parameter :: hollingsworth=.true.
 
+	  !Kinetic energy at vertices
       real (kind=RKIND), allocatable, dimension(:,:) :: ke_vertex
       real (kind=RKIND) :: ke_fact
+
+      !PXT - Height at vertices
+      real (kind=RKIND) :: zgrid_vertex
+	  real (kind=RKIND), pointer :: r_earth
+
       real (kind=RKIND), pointer :: config_apvm_upwinding
 
       !PXT additional flags
       logical, pointer :: config_consistent_scheme
+      logical, pointer :: config_consistent_dyn
       logical, pointer :: config_KE_vecrecon_perot
       logical, pointer :: config_KE_vecrecon_rbf
       logical, pointer :: config_bary_interpol_edge
@@ -3746,8 +3766,12 @@ module atm_time_integration
       logical, pointer :: config_consist_perp
       logical, pointer :: config_hollingsworth
 
+	  !PXT - Coefficient for the consistent dynamics equations (0-dont use, 1-use non trad Coriolis term)
+	  real :: coef_consistent_dyn, coef_coriolis
+
       !PXT additional flags
       call mpas_pool_get_config(configs, 'config_consistent_scheme', config_consistent_scheme)
+      call mpas_pool_get_config(configs, 'config_consistent_dyn', config_consistent_dyn)
       call mpas_pool_get_config(configs, 'config_KE_vecrecon_perot', config_KE_vecrecon_perot)
       call mpas_pool_get_config(configs, 'config_KE_vecrecon_rbf', config_KE_vecrecon_rbf)
       call mpas_pool_get_config(configs, 'config_bary_interpol_edge', config_bary_interpol_edge)
@@ -3757,6 +3781,8 @@ module atm_time_integration
 
 
       call mpas_pool_get_config(configs, 'config_apvm_upwinding', config_apvm_upwinding)
+
+
 
       call mpas_pool_get_array(state, 'rho_zz', h, time_lev)
       call mpas_pool_get_array(state, 'u', u, time_lev)
@@ -3781,6 +3807,9 @@ module atm_time_integration
       call mpas_pool_get_array(diag, 'uReconstructZonal', uReconstructZonal)
       call mpas_pool_get_array(diag, 'uReconstructMeridional', uReconstructMeridional)
 
+	  call mpas_pool_get_config(mesh, 'sphere_radius', r_earth)
+	  call mpas_pool_get_array(mesh, 'zgrid', zgrid)
+
       call mpas_pool_get_array(mesh, 'weightsOnEdge', weightsOnEdge)
       call mpas_pool_get_array(mesh, 'kiteAreasOnVertex', kiteAreasOnVertex)
       call mpas_pool_get_array(mesh, 'cellsOnEdge', cellsOnEdge)
@@ -3798,6 +3827,8 @@ module atm_time_integration
       call mpas_pool_get_array(mesh, 'areaTriangle', areaTriangle)
       call mpas_pool_get_array(mesh, 'fVertex', fVertex)
       call mpas_pool_get_array(mesh, 'fEdge', fEdge)
+
+
 
       call mpas_pool_get_dimension(mesh, 'nCells', nCells)
       call mpas_pool_get_dimension(mesh, 'nEdges', nEdges)
@@ -3949,7 +3980,6 @@ module atm_time_integration
          !
          !PXT- Need to change this as well, in a vector reconstruction style
          !     For now, this is first order accurate, so should be ok
-
          allocate (ke_vertex(nVertLevels,nVertices))
          ! Precalculate inverse area triangle to avoid repeated divisions
          ! Replace 2.0 with 2 in exponentiation to avoid outside chance that
@@ -4049,6 +4079,13 @@ module atm_time_integration
       ! Avoid dividing h_vertex by areaTriangle and move areaTriangle into
       ! numerator for the pv_vertex calculation
 
+	 !Dynamical consistent equation change
+	 if(config_consistent_dyn)then
+	   coef_consistent_dyn=1.0
+	 else
+	   coef_consistent_dyn=0.0
+	 end if
+
      !PXT-Option for linear interpolation
      ! With this method the h_vertex will always be second order accurate, even in distorted grids
      if(config_bary_interpol_vertex)then
@@ -4057,16 +4094,25 @@ module atm_time_integration
            !PXT - The barycentric coefficients should be pre-calculated for performance
            call mpas_barycentric_coefs_vertex(iVertex, mesh, bar_coefs)
            do k=1,nVertLevels
+           	  print*, k
               h_vertex = 0.0
+              zgrid_vertex=0.0
               do i=1,vertexDegree
                  h_vertex = h_vertex + h(k,cellsOnVertex(i,iVertex)) * bar_coefs(i)
+                 !interpolate height to vertex points for dynamically consistent equations
+                 zgrid_vertex = zgrid_vertex + zgrid(k,cellsOnVertex(i,iVertex)) * bar_coefs(i)
               end do
+              coef_coriolis=1.0+coef_consistent_dyn*2.0*zgrid_vertex/r_earth
+              if(iVertex==1)then
+              	print*, k, coef_coriolis, coef_consistent_dyn, zgrid_vertex, r_earth
+              end if
+
               !Some halos are null, but will not be used later, so protect from errors
               !  This can be optimized by changing the way the bary interpol deal with halos
               if( abs(h_vertex)<10e-7)then
                 pv_vertex(k,iVertex)=0.0
               else
-                pv_vertex(k,iVertex) = (fVertex(iVertex) + vorticity(k,iVertex)) / h_vertex
+                pv_vertex(k,iVertex) = (fVertex(iVertex)*coef_coriolis + vorticity(k,iVertex)) / h_vertex
               end if
 
               !print*, iVertex, k, h_vertex, pv_vertex(k,iVertex), vorticity(k,iVertex)

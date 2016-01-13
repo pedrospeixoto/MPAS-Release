@@ -289,6 +289,7 @@ module atm_core
         call mpas_consist_weights_on_edge(mesh)
       end if
 
+
       !PXT - This was moved to inside the solve_diagnostics
       !call mpas_pool_get_array(state, 'u', u, 1)
       !call mpas_pool_get_array(diag, 'uReconstructX', uReconstructX)
