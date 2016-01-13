@@ -2540,6 +2540,10 @@ module atm_time_integration
       !PXT additional flags
       logical, pointer :: config_consistent_scheme
       logical, pointer :: config_consist_perp
+      logical, pointer :: config_consistent_dyn
+
+	  !PXT - Coefficient for the consistent dynamics equations (0-dont use, 1-use non trad Coriolis term)
+	  real :: coef_consistent_dyn
 
       real (kind=RKIND) :: flux3, flux4
       real (kind=RKIND) :: q_im2, q_im1, q_i, q_ip1, ua, coef3
@@ -2670,6 +2674,8 @@ module atm_time_integration
       !PXT - added flags
       call mpas_pool_get_config(configs, 'config_consistent_scheme', config_consistent_scheme)
       call mpas_pool_get_config(configs, 'config_consist_perp', config_consist_perp)
+	  call mpas_pool_get_config(configs, 'config_consistent_dyn', config_consistent_dyn)
+
 
       prandtl_inv = 1.0_RKIND/prandtl
 
@@ -3214,17 +3220,23 @@ module atm_time_integration
          end do
       end if
 
-      if (curvature) then
+	 !PXT - Dynamical consistent equation change
+	 if(config_consistent_dyn)then
+	   coef_consistent_dyn=1.0
+	 else
+	   coef_consistent_dyn=0.0
+	 end if
 
+      if (curvature) then
+		!PXT - added possibility to remove the curvature term (uU+vV)/r for dynamical consistency
          do iCell = 1, nCellsSolve
             do k=2,nVertLevels
-               tend_w(k,iCell) = tend_w(k,iCell) + (rho_zz(k,iCell)*fzm(k)+rho_zz(k-1,iCell)*fzp(k))*          &
+               tend_w(k,iCell) = tend_w(k,iCell) + (1.0-coef_consistent_dyn)*(rho_zz(k,iCell)*fzm(k)+rho_zz(k-1,iCell)*fzp(k))*          &
                                          ( (fzm(k)*ur_cell(k,iCell)+fzp(k)*ur_cell(k-1,iCell))**2.             &
                                           +(fzm(k)*vr_cell(k,iCell)+fzp(k)*vr_cell(k-1,iCell))**2. )/r_earth   &
                                    + 2.*omega*cos(latCell(iCell))                                              &
                                           *(fzm(k)*ur_cell(k,iCell)+fzp(k)*ur_cell(k-1,iCell))                 &
                                           *(rho_zz(k,iCell)*fzm(k)+rho_zz(k-1,iCell)*fzp(k))
-
             end do
          end do
 
