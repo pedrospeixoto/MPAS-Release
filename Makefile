@@ -289,18 +289,18 @@ intel-nersc:
 bluegene:
 	( $(MAKE) all \
 	"GEN_F90 = true" \
-	"FC_PARALLEL = mpixlf95_r" \
+	"FC_PARALLEL = mpixlf90_r" \
 	"CC_PARALLEL = mpixlc_r" \
 	"CXX_PARALLEL = mpixlcxx_r" \
-	"FC_SERIAL = bgxlf95_r" \
+	"FC_SERIAL = bgxlf90_r" \
 	"CC_SERIAL = bgxlc_r" \
-	"CXX_SERIAL = bgxlcxx_r" \
-	"FFLAGS_OPT = -O2 -g -qrealsize=8 -qinitalloc -qinitauto" \
-	"CFLAGS_OPT = -O2 -g" \
-	"CXXFLAGS_OPT = -O2 -g" \
-	"LDFLAGS_OPT = -O2 -g" \
-	"FFLAGS_DEBUG = -O0 -g -C -qinitalloc -qinitauto -qrealsize=8" \
-	"CFLAGS_DEBUG = -O0 -g" \
+	"CXX_SERIAL = bgxlC_r" \
+	"FFLAGS_OPT = -O0 -g -qrealsize=8" \
+	"CFLAGS_OPT = -O0 -g" \
+	"CXXFLAGS_OPT = -O0 -g" \
+	"LDFLAGS_OPT = -O0 -g" \
+	"FFLAGS_DEBUG = -O0 -g -C -qinitalloc -qinitauto -qrealsize=8 -qstrict -k -qarch=auto -qfullpath -qsigtrap  -qcheck=nullptr -qcheck=bounds" \
+	"CFLAGS_DEBUG = -O0 -g -qarch=auto -qstrict " \
 	"CXXFLAGS_DEBUG = -O0 -g" \
 	"LDFLAGS_DEBUG = -O0 -g" \
 	"CORE = $(CORE)" \
