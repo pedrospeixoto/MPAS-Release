@@ -92,7 +92,7 @@ if false ; then
    make install
    #make testing
    cd ..
-   #rm -rf mpich-3.3.1
+   rm -rf mpich-3.3.1
    exit 1
 fi
 
@@ -110,7 +110,7 @@ if false ; then
     make -j 4
     make install
     cd ..
-    #rm -rf zlib-1.2.11
+    rm -rf zlib-1.2.11
     exit 1
 fi
 
@@ -128,8 +128,8 @@ if false ; then
     #make check
     make install
     cd ..
+    rm -rf hdf5-1.10.5
     exit 1
-    #rm -rf hdf5-1.10.5
 fi
 
 ########################################
@@ -154,8 +154,8 @@ if false ; then
     #make testing
     make install
     cd ..
+    rm -rf pnetcdf-1.11.2
     exit 1
-    #rm -rf pnetcdf-1.11.2
 fi
 export PNETCDF=${LIBBASE}
 
@@ -175,8 +175,8 @@ if false; then
     make install
 
     cd ..
+    rm -rf netcdf-c-4.7.0
     exit 1
-    #rm -rf netcdf-c-4.7.0
 fi
 
 export NETCDF=${LIBBASE}
@@ -195,8 +195,8 @@ if false; then
     #make check
     make install
     cd ..
+    rm -rf netcdf-fortran-4.4.5
     exit 1
-    #rm -rf netcdf-fortran-4.4.5
 fi
 
 ########################################
@@ -217,7 +217,7 @@ if false; then
     #make check
     make install
     cd ..
-    #rm -rf pio ParallelIO
+    rm -rf pio ParallelIO
 fi
 
 export PIO=$LIBBASE
