@@ -1,0 +1,62 @@
+netcdf grid {
+dimensions:
+	nCells = 2562 ;
+	nEdges = 7680 ;
+	nVertices = 5120 ;
+	maxEdges = 10 ;
+	maxEdges2 = 20 ;
+	TWO = 2 ;
+	vertexDegree = 3 ;
+	nVertLevels = 1 ;
+	Time = UNLIMITED ; // (0 currently)
+variables:
+	double latCell(nCells) ;
+	double lonCell(nCells) ;
+	double meshDensity(nCells) ;
+	double xCell(nCells) ;
+	double yCell(nCells) ;
+	double zCell(nCells) ;
+	int indexToCellID(nCells) ;
+cg	double latEdge(nEdges) ;
+cg	double lonEdge(nEdges) ;
+cg	double xEdge(nEdges) ;
+cg	double yEdge(nEdges) ;
+cg	double zEdge(nEdges) ;
+	int indexToEdgeID(nEdges) ;
+	double latVertex(nVertices) ;
+	double lonVertex(nVertices) ;
+	double xVertex(nVertices) ;
+	double yVertex(nVertices) ;
+	double zVertex(nVertices) ;
+	int indexToVertexID(nVertices) ;
+	int cellsOnEdge(nEdges, TWO) ;
+	int nEdgesOnCell(nCells) ;
+	int nEdgesOnEdge(nEdges) ;
+	int edgesOnCell(nCells, maxEdges) ;
+	int edgesOnEdge(nEdges, maxEdges2) ;
+??	double weightsOnEdge(nEdges, maxEdges2) ;
+	double dvEdge(nEdges) ;
+	double dv1Edge(nEdges) ;
+	double dv2Edge(nEdges) ;
+	double dcEdge(nEdges) ;
+cg	double angleEdge(nEdges) ;
+	double areaCell(nCells) ;
+	double areaTriangle(nVertices) ;
+	int cellsOnCell(nCells, maxEdges) ;
+	int verticesOnCell(nCells, maxEdges) ;
+	int verticesOnEdge(nEdges, TWO) ;
+	int edgesOnVertex(nVertices, vertexDegree) ;
+	int cellsOnVertex(nVertices, vertexDegree) ;
+	double kiteAreasOnVertex(nVertices, vertexDegree) ;
+EXTRA
+cg	fEdge; Coriolis at edge
+	fVertex ; Coriolis at vertex - ok
+	
+// global attributes:
+		:on_a_sphere = "YES             " ;
+		:sphere_radius = 1. ;
+		:np = 2562 ;
+		:n_scvt_iterations = 0 ;
+		:eps = 1.e-09 ;
+		:Convergence = "L2" ;
+}
