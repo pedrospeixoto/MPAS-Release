@@ -227,3 +227,5 @@ export PIO=$LIBBASE
 ########################################
 export MPAS_EXTERNAL_LIBS="-L${LIBBASE}/lib -lhdf5_hl -lhdf5 -ldl -lz"
 export MPAS_EXTERNAL_INCLUDES="-I${LIBBASE}/include"
+
+echo "MPAS env variables exported!"
