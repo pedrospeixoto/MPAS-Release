@@ -83,7 +83,7 @@ fi
 # MPICH
 ########################################
 
-if false ; then
+if true ; then
    tar xzvf ${LIBSRC}/mpich-3.3.1.tar.gz
    cd mpich-3.3.1
    ./configure --prefix=${LIBBASE}
@@ -93,7 +93,7 @@ if false ; then
    #make testing
    cd ..
    rm -rf mpich-3.3.1
-   exit 1
+   #exit 1
 fi
 
 export PATH=${LIBBASE}/bin:$PATH
@@ -103,7 +103,7 @@ export LD_LIBRARY_PATH=${LIBBASE}/lib:$LD_LIBRARY_PATH
 ########################################
 # zlib 
 ########################################
-if false ; then
+if true ; then
     tar xzvf ${LIBSRC}/zlib-1.2.11.tar.gz
     cd zlib-1.2.11
     ./configure --prefix=${LIBBASE} --static
@@ -111,13 +111,13 @@ if false ; then
     make install
     cd ..
     rm -rf zlib-1.2.11
-    exit 1
+    #exit 1
 fi
 
 ########################################
 # HDF5 
 ########################################
-if false ; then
+if true ; then
     tar xjvf ${LIBSRC}/hdf5-1.10.5.tar.bz2
     cd hdf5-1.10.5
     export FC=$MPI_FC
@@ -129,13 +129,13 @@ if false ; then
     make install
     cd ..
     rm -rf hdf5-1.10.5
-    exit 1
+    #exit 1
 fi
 
 ########################################
 # Parallel-netCDF - use mpich!!!
 ########################################
-if false ; then
+if true ; then
     tar xzvf ${LIBSRC}/pnetcdf-1.11.2.tar.gz
     cd pnetcdf-1.11.2
     export CC=$SERIAL_CC
@@ -155,14 +155,14 @@ if false ; then
     make install
     cd ..
     rm -rf pnetcdf-1.11.2
-    exit 1
+    #exit 1
 fi
 export PNETCDF=${LIBBASE}
 
 ########################################
 # netCDF (C library)
 ########################################
-if false; then
+if true; then
     tar xzvf ${LIBSRC}/netcdf-c-4.7.0.tar.gz
     cd netcdf-c-4.7.0
     export CPPFLAGS="-I${LIBBASE}/include"
@@ -171,12 +171,12 @@ if false; then
     export CC=$MPI_CC
     ./configure --prefix=${LIBBASE} --disable-dap --enable-netcdf4 --enable-pnetcdf --enable-cdf5 --enable-parallel-tests --disable-shared
     make -j 4 
-    #make check
+    make check
     make install
 
     cd ..
     rm -rf netcdf-c-4.7.0
-    exit 1
+    #exit 1
 fi
 
 export NETCDF=${LIBBASE}
@@ -184,7 +184,7 @@ export NETCDF=${LIBBASE}
 ########################################
 # netCDF (Fortran interface library)
 ########################################
-if false; then
+if true; then
     tar xzvf ${LIBSRC}/netcdf-fortran-4.4.5.tar.gz
     cd netcdf-fortran-4.4.5
     export FC=$MPI_FC
@@ -192,17 +192,17 @@ if false; then
     export LIBS="-lnetcdf ${LIBS}"
     ./configure --prefix=${LIBBASE} --enable-parallel-tests --disable-shared
     make -j 4
-    #make check
+    make check
     make install
     cd ..
     rm -rf netcdf-fortran-4.4.5
-    exit 1
+    #exit 1
 fi
 
 ########################################
 # PIO
 ########################################
-if false; then
+if true; then
     git clone https://github.com/NCAR/ParallelIO
     cd ParallelIO
     git checkout -b pio-2.4.4 pio2_4_4

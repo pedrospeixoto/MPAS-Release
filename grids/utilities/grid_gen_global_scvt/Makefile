@@ -5,7 +5,7 @@
 #PROMOTION = -r8
 #LDFLAGS = -m64 -O3 -fast -ipo -openmp
 
-FC = gfortran
+FC = gfortran-8
 FFLAGS = -ffree-form -O3 -fopenmp -ffree-line-length-none
 F77FLAGS = -ffixed-form -O3 -fopenmp -fsecond-underscore
 CPPFLAGS = -DRKIND=8
