@@ -1,6 +1,5 @@
 &domains
  np = 16                  ! Number of generating points - is ignored in case of read file
- locs_as_xyz = .true.      !Input format given as xyz or lat-long
  n_scvt_iterations = 0     ! Number of Lloyd iterations before generating a grid file - leave 0 just to convert a xyz file to MPAS format
  restart_interval = 100    ! Number of iterations between write of restart files
  eps = 1.0e-10             ! Convergence criterion (max L2 movement of generating points)

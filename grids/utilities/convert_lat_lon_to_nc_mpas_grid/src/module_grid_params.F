@@ -27,15 +27,15 @@ module grid_params
 
       np = 40962
       locs_as_xyz = .true.
-      n_scvt_iterations = 0
-      restart_interval = 0
-      eps = 0.0
+      n_scvt_iterations = 10000
+      restart_interval = 1000
+      eps = 0.0000000001
       l2_conv = .true.
       inf_conv = .false.
       min_dx = 0.0
-	   work_dir=""
-	   locs_dat="locs.dat"
-	   locs_dat_out="locs.dat.out"
+	    work_dir=""
+	    locs_dat="locs.dat"
+	    locs_dat_out="locs.dat.out"
       graph_info="graph.info"
       grid_nc="grid.nc"
       plotin="scvt_initial.ps"
@@ -47,8 +47,8 @@ module grid_params
       read(funit,files)
       close(funit)
 
-	   locs_dat=trim(work_dir)//trim(locs_dat)
-	   locs_dat_out=trim(work_dir)//trim(locs_dat_out)
+	    locs_dat=trim(work_dir)//trim(locs_dat)
+	    locs_dat_out=trim(work_dir)//trim(locs_dat_out)
       graph_info=trim(work_dir)//trim(graph_info)
       grid_nc=trim(work_dir)//trim(grid_nc)
       plotin=trim(work_dir)//trim(plotin)

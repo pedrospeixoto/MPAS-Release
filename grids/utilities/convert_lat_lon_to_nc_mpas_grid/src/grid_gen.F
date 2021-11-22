@@ -56,7 +56,7 @@ program grid_gen
    call read_namelist()
    write(0,*) ""
    open(22,file=locs_dat, status='old')
-   if (locs_as_xyz) then !xyz file - has the number of nodes on first line
+   if (locs_as_xyz) then !xyz file - has ne number of nodes on first line
       read(22,*) n
       if (n/=np)then
       	write(0,*) "Number of points in namelist does not match grid file (file, nml)", n, np
