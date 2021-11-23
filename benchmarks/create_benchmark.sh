@@ -233,7 +233,7 @@ function namelist_atmosphere (){
 	echo ${PERP_NML//\//\/}
 	sed -i "s/config_hollingsworth.*/${HOLS_NML}/" namelist.atmosphere
 	echo ${HOLS_NML}
-	sed -i "s/config_block_decomp_file_prefix.*/${GRAPH_PATH//\//\/}/" namelist.atmosphere
+	sed -i "s+config_block_decomp_file_prefix.*+${GRAPH_PATH//\//\/}+" namelist.atmosphere
 	echo ${GRAPH_PATH//\//\/}
 	}
 
@@ -246,34 +246,34 @@ function streams_atmosphere (){
 	
 	INPUT="                  filename_template='${INIT_DIR}/${INIT_NAME}.nc'"
 	echo $INPUT
-	awk -v var="$INPUT" '{ if ( NR == 5 ) { print var;} else {print $0;} }'  streams.atmosphere > streams.atmosphere.tmp
+	awk -v var="$INPUT" '{ if ( NR == 4 ) { print var;} else {print $0;} }'  streams.atmosphere > streams.atmosphere.tmp
 	cp streams.atmosphere.tmp streams.atmosphere
 	
-	OUTPUT="        filename_template='${NAME}${DATE_NAME}.out.nc'"
+	OUTPUT="        filename_template='${RUN_DIR}/${NAME}${DATE_NAME}.out.nc'"
 	echo $OUTPUT
 	#	$Y-$M-$D_$h.$m.$s
-	awk -v var="$OUTPUT" '{ if ( NR == 17 ) { print var;} else {print $0;} }'  streams.atmosphere > streams.atmosphere.tmp
+	awk -v var="$OUTPUT" '{ if ( NR == 15 ) { print var;} else {print $0;} }'  streams.atmosphere > streams.atmosphere.tmp
 	cp streams.atmosphere.tmp streams.atmosphere
 	
-	DIAG="        filename_template='${NAME}${DATE_NAME}.diag.nc'"
+	DIAG="        filename_template='${RUN_DIR}/${NAME}${DATE_NAME}.diag.nc'"
 	echo $DIAG
 	#	$Y-$M-$D_$h.$m.$s
-	awk -v var="$DIAG" '{ if ( NR == 28 ) { print var;} else {print $0;} }'  streams.atmosphere > streams.atmosphere.tmp
+	awk -v var="$DIAG" '{ if ( NR == 23 ) { print var;} else {print $0;} }'  streams.atmosphere > streams.atmosphere.tmp
 	cp streams.atmosphere.tmp streams.atmosphere
 
-	sed -i "s/output_interval.*/${OUT_INT}/" streams.atmosphere
-	echo ${OUT_INT}
+	#sed -i 's+output_interval=[\"]*[\"]+${OUT_INT}+g' streams.atmosphere
+	#echo ${OUT_INT}
 	
 	#Copy stream_lists
-	cp stream_list.atmosphere.diagnostics.orig stream_list.atmosphere.diagnostics
-	cp stream_list.atmosphere.output.orig stream_list.atmosphere.output
-	cp stream_list.atmosphere.surface.orig stream_list.atmosphere.surface
+	cp $MPAS_DIR/default_inputs/stream_list.atmosphere.diagnostics stream_list.atmosphere.diagnostics
+	cp $MPAS_DIR/default_inputs/stream_list.atmosphere.output stream_list.atmosphere.output
+	cp $MPAS_DIR/default_inputs/stream_list.atmosphere.surface stream_list.atmosphere.surface
 	
-	if [ $USE_REDUCED_OUT -eq 1 ] ;then 
-		cp stream_list.atmosphere.output.reduced stream_list.atmosphere.output		
-	else
-		cp stream_list.atmosphere.output.orig stream_list.atmosphere.output
-	fi	
+	#if [ $USE_REDUCED_OUT -eq 1 ] ;then 
+	#	cp stream_list.atmosphere.output.reduced stream_list.atmosphere.output		
+	#else
+	#	cp stream_list.atmosphere.output.orig stream_list.atmosphere.output
+	#fi	
 	
 	}
 	
@@ -302,12 +302,13 @@ rm -rf stream*.tmp
 
 cd ..
 mkdir -p ${RUN_DIR}
+cd ${RUN_DIR}
 
 ln -sf ${MPAS_DIR}/atmosphere_model 
 
 # Setup run_time conditions
-#namelist_atmosphere
-#streams_atmosphere
+namelist_atmosphere
+streams_atmosphere
 
 #Clean folder
 rm -rf stream*.tmp
