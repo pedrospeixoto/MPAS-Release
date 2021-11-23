@@ -133,6 +133,7 @@ fi
 
 
 # FOR MPAS
+export MPAS_DIR=`pwd`
 export NETCDF=$NETCDF_PATH
 export PNETCDF=$PNETCDF_PATH
 export PIO=$PIO_PATH

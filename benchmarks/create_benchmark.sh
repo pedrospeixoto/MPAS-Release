@@ -6,21 +6,25 @@
 #-----------------------------------------------------------#
 
 #Main directory for MPAS - do not put / in the end !!!
-MPAS_DIR="/scratch/pd300/Work/Programas/MPAS/MPAS-PXT"
+# This is already set by setup_env.sh
+# MPAS_DIR="/scratch/pd300/Work/Programas/MPAS/MPAS-PXT" 
 #MPAS_DIR="/scratch/pr63so/di25coq/MPAS-PXT"
 #MPAS_DIR="/home/psp2/MPAS-PXT"
 #WORK_DIR="/scratch/psp2"
 WORK_DIR=$MPAS_DIR
+BENCH_DIR=$WORK_DIR/benchmarks
 
 #Grid
-GRD_NAME="x1.40962"
+GRD_NAME="x1.2562"
 #GRD_NAME="HR95xxx"
-GRD_DIR=${WORK_DIR}"/grids/"${GRD_NAME}
+GRD_DIR=${WORK_DIR}"/grids/grids/"${GRD_NAME}
 #GRD_DIR=${MPAS_DIR}"/grids/"x1.10242
 
 #Init
-INIT_DIR=${WORK_DIR}"/jw_tests/init"
-LEVELS=60     #Vertical levels
+BENCH_NAME="jw_tc1"
+BENCH_DIR=${BENCH_DIR}/${BENCH_NAME}
+
+LEVELS=20     #Vertical levels
 TC=1          #Test case JW 0,1,2
 HCM=1         #1=HCm, 0=HCt
 
@@ -76,6 +80,7 @@ function setup_vars (){
     	    NAME=${NAME}.hct
 	fi
 	INIT_NAME=${NAME}.init
+	SURF_NAME=${NAME}.sfc_update
 
 	#ATMOSPHERE
 	DT_NML="config_dt = "${DT}
@@ -140,6 +145,9 @@ function setup_vars (){
 	echo "Test case name:"
 	echo $NAME
 	echo ""
+	INIT_DIR=${BENCH_DIR}"/"${NAME}"/init"
+	RUN_DIR=${BENCH_DIR}"/"${NAME}"/run"
+
 	#Graph path
 	GRAPH_PATH="config_block_decomp_file_prefix = '${GRD_DIR}/${GRD_NAME}.graph.info.part.'"
 	
@@ -152,10 +160,52 @@ function setup_vars (){
 }
 
 
+
+#NAMELIST.INIT
+function namelist_init_atmosphere (){
+	#backup original
+	cp $MPAS_DIR/default_inputs/namelist.init_atmosphere namelist.init_atmosphere
+	echo
+	echo "Setup for namelist.init_atmosphere"
+	#Write namelist.init
+	sed -i "s/config_init_case.*/${TC_NML//\//\/}/" namelist.init_atmosphere
+	echo ${TC_NML}
+	sed -i "s/config_hcm_staggering.*/${HCM_NML//\//\/}/" namelist.init_atmosphere
+	echo ${HCM_NML}
+	sed -i "s/config_nvertlevels.*/${LEVELS_NML//\//\/}/" namelist.init_atmosphere
+	echo ${LEVELS_NML}
+	sed -i "s+config_block_decomp_file_prefix.*+${GRAPH_PATH//\//\/}+" namelist.init_atmosphere
+	echo ${GRAPH_PATH//\//\/}
+	}
+
+#STREAMS.INIT
+function streams_init_atmosphere (){
+	cp $MPAS_DIR/default_inputs/streams.init_atmosphere streams.init_atmosphere
+	echo
+	echo "Setup for streams.init_atmosphere"
+	INPUT="                  filename_template='${GRD_DIR}/${GRD_NAME}.grid.nc'"
+	awk -v var="$INPUT" '{ if ( NR == 4 ) { print var;} else {print $0;} }'  streams.init_atmosphere > streams.init_atmosphere.tmp
+	cp streams.init_atmosphere.tmp streams.init_atmosphere
+	echo ${INPUT}
+	
+	OUTPUT="                  filename_template='${INIT_DIR}/${INIT_NAME}.nc'"
+	awk -v var="$OUTPUT" '{ if ( NR == 9 ) { print var;} else {print $0;} }'  streams.init_atmosphere > streams.init_atmosphere.tmp
+	cp streams.init_atmosphere.tmp streams.init_atmosphere
+	echo ${OUTPUT}
+
+	SURFACE="                  filename_template='${INIT_DIR}/${SURF_NAME}.nc'"
+	awk -v var="$SURFACE" '{ if ( NR == 15 ) { print var;} else {print $0;} }'  streams.init_atmosphere > streams.init_atmosphere.tmp
+	cp streams.init_atmosphere.tmp streams.init_atmosphere
+	echo ${OUTPUT}
+
+	}
+	
+
+
 #NAMELIST ATMOSPHERE
 function namelist_atmosphere (){
 	#backup original
-	cp namelist.atmosphere.orig namelist.atmosphere	
+	cp $MPAS_DIR/default_inputs/namelist.atmosphere namelist.atmosphere	
 	echo 
 	echo "Setup for namelist.atmosphere:"
 	#Write namelist.init
@@ -190,7 +240,7 @@ function namelist_atmosphere (){
 #STREAMS.ATM
 function streams_atmosphere (){
 
-	cp streams.atmosphere.orig streams.atmosphere
+	cp $MPAS_DIR/default_inputs/streams.atmosphere streams.atmosphere
 	echo 
 	echo "Setup for streams.atmosphere:"
 	
@@ -228,41 +278,6 @@ function streams_atmosphere (){
 	}
 	
 
-
-#NAMELIST.INIT
-function namelist_init_atmosphere (){
-	#backup original
-	cp namelist.init_atmosphere.orig namelist.init_atmosphere
-	echo
-	echo "Setup for namelist.init_atmosphere"
-	#Write namelist.init
-	sed -i "s/config_init_case.*/${TC_NML//\//\/}/" namelist.init_atmosphere
-	echo ${TC_NML}
-	sed -i "s/config_hcm_staggering.*/${HCM_NML//\//\/}/" namelist.init_atmosphere
-	echo ${HCM_NML}
-	sed -i "s/config_nvertlevels.*/${LEVELS_NML//\//\/}/" namelist.init_atmosphere
-	echo ${LEVELS_NML}
-	sed -i "s/config_block_decomp_file_prefix.*/${GRAPH_PATH//\//\/}/" namelist.init_atmosphere
-	echo ${GRAPH_PATH//\//\/}
-	}
-
-#STREAMS.INIT
-function streams_init_atmosphere (){
-	cp streams.init_atmosphere.orig streams.init_atmosphere
-	echo
-	echo "Setup for streams.init_atmosphere"
-	INPUT="                  filename_template='${GRD_DIR}/${GRD_NAME}.grid.nc'"
-	awk -v var="$INPUT" '{ if ( NR == 4 ) { print var;} else {print $0;} }'  streams.init_atmosphere > streams.init_atmosphere.tmp
-	cp streams.init_atmosphere.tmp streams.init_atmosphere
-	echo ${INPUT}
-	
-	OUTPUT="                  filename_template='${INIT_DIR}/${INIT_NAME}.nc'"
-	awk -v var="$OUTPUT" '{ if ( NR == 9 ) { print var;} else {print $0;} }'  streams.init_atmosphere > streams.init_atmosphere.tmp
-	cp streams.init_atmosphere.tmp streams.init_atmosphere
-	echo ${OUTPUT}
-	}
-	
-	
 #####------------------MAIN ---------------------------------#########################	
 
 #setup vars - sets up $NAME and parameters for namelists/streams
@@ -270,24 +285,29 @@ setup_vars
 
 #Iinit directory structure
 mkdir -p ${INIT_DIR}
-
+cd ${INIT_DIR}
 
 #Run directory structure
-mkdir -p ${NAME}
-cd ${NAME}
+#mkdir -p ${NAME}
+#cd ${NAME}
 ln -sf ${MPAS_DIR}/init_atmosphere_model 
-ln -sf ${MPAS_DIR}/atmosphere_model 
-cp ${MPAS_DIR}/jw_tests/name*.orig .
-cp ${MPAS_DIR}/jw_tests/stream*.orig .
-cp ${MPAS_DIR}/jw_tests/stream_list.* .
+
 
 # Setup initial conditions
 namelist_init_atmosphere
 streams_init_atmosphere
 
+#Clean folder
+rm -rf stream*.tmp
+
+cd ..
+mkdir -p ${RUN_DIR}
+
+ln -sf ${MPAS_DIR}/atmosphere_model 
+
 # Setup run_time conditions
-namelist_atmosphere
-streams_atmosphere
+#namelist_atmosphere
+#streams_atmosphere
 
 #Clean folder
 rm -rf stream*.tmp
