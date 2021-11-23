@@ -1,47 +1,24 @@
 #! /bin/bash
 
-. config.sh
+source ./install_helpers.sh ""
 
+PKG_NAME="PIO"
+PKG_INSTALLED_FILE="$SWEET_LOCAL_SOFTWARE_DST_DIR/bin/pio"
+#PKG_URL_SRC="https://www2.mmm.ucar.edu/people/duda/files/mpas/sources/netcdf-c-4.7.0.tar.gz"
 
-echo "*** PIO ***"
-if [ "`uname -s`" != "Linux" ]; then
-        echo "This script only supports Linux systems"
-else
-        if [ ! -e "$DST_DIR/lib/libpio.so" ]; then
-                SRC_LINK="https://github.com/NCAR/ParallelIO/archive/pio1_6_7.zip"
-                FILENAME="`basename $SRC_LINK`"
-                BASENAME="pio1_6_7"
-                
-		# On the Blue gene Rice the wget has no zip extention
-		
-                cd "$SRC_DIR"
-
-                if [ ! -e "$FILENAME" ]; then
-			echo "Getting $SRC_LINK"
-                        wget "$SRC_LINK" || exit 1
-			mv $BASENAME $BASENAME.zip
-                fi
-
-		echo "Extracting $FILENAME"
-		unzip "$FILENAME"
-		rm -rf pio1_6_7/ 
-		mv ParallelIO-pio1_6_7 pio1_6_7 || exit 1
-                cd pio1_6_7/pio || return
-		#For blue gene disbale netcdf and leave just pnetcdf
-		./configure --prefix=${DST_DIR} --disable-netcdf --enable-pnetcdf || return
-                #./configure --prefix=${DST_DIR} || exit 1
-
-		# INTEL HACK for MAC CLUSTER
-		if [ "mac-login-amd" == "`hostname`" ]; then
-			echo "************************************ HACK FOR MAC ********************************"
-			sed -i -- 's/-I\/lrz\/sys\/intel\/impi\/5.1.1.109\/include64//' ./Makefile.conf
-		fi
-
-		make all || exit 1
-                make install || exit 1
-
-                echo "DONE"
-
-        fi
-fi
+cd local_src
+git clone https://github.com/NCAR/ParallelIO
+cd ParallelIO
+git checkout -b pio-2.4.4 pio2_4_4
+export PIOSRC=`pwd`
+cd ..
+mkdir pio
+cd pio
+export CC=$MPI_CC
+export FC=$MPI_FC
+cmake -DNetCDF_C_PATH=$NETCDF -DNetCDF_Fortran_PATH=$NETCDF -DPnetCDF_PATH=$PNETCDF -DHDF5_PATH=$NETCDF -DCMAKE_INSTALL_PREFIX=$LIBBASE -DPIO_USE_MALLOC=ON -DCMAKE_VERBOSE_MAKEFILE=1 -DPIO_ENABLE_TIMING=OFF $PIOSRC
+make
+#make check
+make install
+cd ..
 

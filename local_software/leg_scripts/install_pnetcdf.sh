@@ -1,34 +1,29 @@
 #! /bin/bash
 
-. config.sh
+source ./install_helpers.sh ""
 
+export CC=$SERIAL_CC
+export CXX=$SERIAL_CXX
+export F77=$SERIAL_F77
+export FC=$SERIAL_FC
+export MPICC=$MPI_CC
+export MPICXX=$MPI_CXX
+export MPIF77=$MPI_F77
+export MPIF90=$MPI_FC
+export F90=$SERIAL_FC
+export FFLAGS="-fallow-argument-mismatch"
+export FCFLAGS="-fallow-argument-mismatch"
 
-echo "*** NETCDF ***"
-if [ "`uname -s`" != "Linux" ]; then
-        echo "This script only supports Linux systems"
-else
-        if [ ! -e "$DST_DIR/lib/libpnetcdf.so" ]; then
-                SRC_LINK="http://ftp.mcs.anl.gov/pub/parallel-netcdf/parallel-netcdf-1.3.1.tar.gz"
-                FILENAME="`basename $SRC_LINK`"
-                BASENAME="parallel-netcdf-1.3.1"
+PKG_NAME="PNETCDF"
+PKG_INSTALLED_FILE="$SWEET_LOCAL_SOFTWARE_DST_DIR/bin/pnetcdf"
+PKG_URL_SRC="https://www2.mmm.ucar.edu/people/duda/files/mpas/sources/pnetcdf-1.11.2.tar.gz"
 
-                cd "$SRC_DIR"
+config_setup
 
-                if [ ! -e "$FILENAME" ]; then
-			echo "Getting $SRC_LINK"
-                        curl "$SRC_LINK" -o "$FILENAME" || exit 1
-                fi
+config_package $@
 
-		echo "Extracting $FILENAME"
-                tar xzf "$FILENAME"
-                cd "$BASENAME"
+config_configure 
 
-                ./configure --prefix=${DST_DIR} || exit 1
-		make || exit 1
-		make install || exit 1
+config_make_default_install
 
-                echo "DONE"
-
-        fi
-fi
-
+config_success
