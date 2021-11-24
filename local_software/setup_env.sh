@@ -124,6 +124,31 @@ elif [[ $host == ppeixoto* ]]; then
 	export FCFLAGS="-g -fbacktrace"
 	export F77FLAGS="-g -fbacktrace" 
 
+elif [[ $host == ybytu* ]]; then
+	
+	echo "Detected a labmap cluster ybytu, loading enviroment..."
+	export SERIAL_FC=gfortran-8
+	export SERIAL_F77=gfortran-8
+	export SERIAL_CC=gcc-8
+	export SERIAL_CXX=g++-8
+	export MPI_FC=mpifort
+	export MPI_F77=mpifort
+	export MPI_CC=mpicc
+	export MPI_CXX=mpic++
+
+
+	export CC=$SERIAL_CC
+	export CXX=$SERIAL_CXX
+	export F77=$SERIAL_F77
+	export FC=$SERIAL_FC
+	#export F90=$SERIAL_FC
+	unset F90  # required to install mpich (God knows why...)
+	unset F90FLAGS  # required to install mpich (God knows why...)
+	export CFLAGS="-g"
+	export FFLAGS="-g -fbacktrace"                          
+	export FCFLAGS="-g -fbacktrace"
+	export F77FLAGS="-g -fbacktrace" 
+
 else
 	echo "********************************************************"
 	echo "****************** ENVIRONMENT UNKNOWN *****************"
