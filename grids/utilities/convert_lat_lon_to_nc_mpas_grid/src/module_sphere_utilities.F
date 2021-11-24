@@ -469,7 +469,7 @@
 
       real :: dl, clat, pii, rtod
       real :: eps
-      parameter (eps=1.e-10)
+      parameter (eps=1.e-15)
 
       pii = 2.*asin(1.0)
       rtod=180./pii

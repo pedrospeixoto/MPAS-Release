@@ -7,11 +7,11 @@
 /
 
 &files
-      work_dir="../../grids/mpas_scvt_4/"        !Directory where grids are and will be stored - leave blank for current (ex: ../grid40km/)
-      locs_dat="mpas_scvt_4.xyz"              !Input file with original xyz nodes file
-      locs_dat_out="mpas_scvt_4out.xyz"      !Output with xyz nodes after optimization
-      graph_info="mpas_scvt_4.graph.info"     ! Graph info to be used by metis 
-      grid_nc="mpas_scvt_4_grid.nc"            ! MPAS formated grid
-      plotin="mpas_scvt_4_initial.ps"         !Plot of initial grid
-      plotout="mpas_scvt_4_final.ps"          !Plot of final optimized grid
+      work_dir="../../grids/marta/"        !Directory where grids are and will be stored - leave blank for current (ex: ../grid40km/)
+      locs_dat="mesh3-lev6.xyz"              !Input file with original xyz nodes file
+      locs_dat_out="mesh3-lev5out.xyz"      !Output with xyz nodes after optimization
+      graph_info="mesh3-lev6.graph.info"     ! Graph info to be used by metis 
+      grid_nc="mesh3-lev6_grid.nc"            ! MPAS formated grid
+      plotin="mesh3-lev6_initial.ps"         !Plot of initial grid
+      plotout="mesh3-lev6_final.ps"          !Plot of final optimized grid
 /
