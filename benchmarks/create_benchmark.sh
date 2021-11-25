@@ -26,7 +26,7 @@ BENCH_DIR=${BENCH_DIR}/${BENCH_NAME}
 
 LEVELS=20     #Vertical levels
 TC=1          #Test case JW 0,1,2
-HCM=1         #1=HCm, 0=HCt
+HCM=0         #1=HCm, 0=HCt
 
 #Output and Diagnostics
 USE_SEP_FILES=0
@@ -86,7 +86,7 @@ function setup_vars (){
 	DT_NML="config_dt = "${DT}
 	NAME=${NAME}.dt${DT}
 	SMAG_NML="config_len_disp            = "${SMAG}
-        NAME=${NAME}.smag${SMAG}
+    NAME=${NAME}.smag${SMAG}
 	SMDV_NML="config_smdiv = "${SMDV}
 	NAME=${NAME}smdv${SMDV}
 	APVM_NML="config_apvm_upwinding = "${APVM}
@@ -164,7 +164,7 @@ function setup_vars (){
 #NAMELIST.INIT
 function namelist_init_atmosphere (){
 	#backup original
-	cp $MPAS_DIR/default_inputs/namelist.init_atmosphere namelist.init_atmosphere
+	cp $MPAS_DIR/src/core_init_atmosphere/default_inputs/namelist.init_atmosphere namelist.init_atmosphere
 	echo
 	echo "Setup for namelist.init_atmosphere"
 	#Write namelist.init
@@ -180,7 +180,7 @@ function namelist_init_atmosphere (){
 
 #STREAMS.INIT
 function streams_init_atmosphere (){
-	cp $MPAS_DIR/default_inputs/streams.init_atmosphere streams.init_atmosphere
+	cp $MPAS_DIR/src/core_init_atmosphere/default_inputs/streams.init_atmosphere streams.init_atmosphere
 	echo
 	echo "Setup for streams.init_atmosphere"
 	INPUT="                  filename_template='${GRD_DIR}/${GRD_NAME}.grid.nc'"
@@ -283,36 +283,42 @@ function streams_atmosphere (){
 #setup vars - sets up $NAME and parameters for namelists/streams
 setup_vars
 
-#Iinit directory structure
-mkdir -p ${INIT_DIR}
-cd ${INIT_DIR}
+init=true
 
-#Run directory structure
-#mkdir -p ${NAME}
-#cd ${NAME}
-ln -sf ${MPAS_DIR}/init_atmosphere_model 
+if [ init ]; then
+	echo $INIT_DIR
+	#Iinit directory structure
+	mkdir -p ${INIT_DIR}
+	cd ${INIT_DIR}
+	echo "dir created"
 
+	#Run directory structure
+	#mkdir -p ${NAME}
+	#cd ${NAME}
+	ln -sf ${MPAS_DIR}/init_atmosphere_model 
+	echo "link created"
 
-# Setup initial conditions
-namelist_init_atmosphere
-streams_init_atmosphere
+	# Setup initial conditions
+	namelist_init_atmosphere
+	streams_init_atmosphere
 
-#Clean folder
-rm -rf stream*.tmp
+	#Clean folder
+	rm -rf stream*.tmp
 
-cd ..
-mkdir -p ${RUN_DIR}
-cd ${RUN_DIR}
+else
 
-ln -sf ${MPAS_DIR}/atmosphere_model 
+	mkdir -p ${RUN_DIR}
+	cd ${RUN_DIR}
 
-# Setup run_time conditions
-namelist_atmosphere
-streams_atmosphere
+	ln -sf ${MPAS_DIR}/atmosphere_model 
 
-#Clean folder
-rm -rf stream*.tmp
+	# Setup run_time conditions
+	namelist_atmosphere
+	streams_atmosphere
 
+	#Clean folder
+	rm -rf stream*.tmp
 
+fi
 
 
