@@ -118,7 +118,7 @@ style = 'ggplot'
 
 print("Creating a plot ")
 
-fig = plt.figure(figsize=(18, 9), dpi=800)
+fig = plt.figure(figsize=(20, 10), dpi=800)
 ax = plt.gca()
 
 
@@ -142,16 +142,18 @@ ax.add_collection(patch_collection)
 #cbar.set_label('Pressure (Pa)')
 
 lons1, lats1 = bmap(lons1, lats1) #, marker = '.', color='r')
-bmap.scatter(lons1, lats1, s=1, marker = '.', color='r', zorder=5)
+bmap.scatter(lons1, lats1, s=0.2, marker = '.', color='r', linewidths=0.2, zorder=5)
+#plt.scatter(lons1, lats1, 0.5, marker = '.', color='r')
 print(lons1)
 lons2, lats2 = bmap(lons2, lats2) #, marker = '.', color='r')
-bmap.scatter(lons2, lats2, s=1, marker = '.', color='g', zorder=5)
+bmap.scatter(lons2, lats2, s=0.2, marker = '.', color='g', linewidths=0.2, zorder=5)
+#plt.scatter(lons2, lats2, 0.5, marker = '.', color='r')
 print(lons2)
 
 # Create the title as you see fit
 plt.title(variable)
 plt.style.use(style) # Set the style that we choose above
 
-plt.savefig(variable+'.png', dpi=500)
+plt.savefig(variable+'.png', dpi=600)
 patch_collection.remove()
 plt.close(fig)
