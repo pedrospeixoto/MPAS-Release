@@ -18,6 +18,9 @@ module atm_time_integration
    use mpas_timekeeping, only: MPAS_Time_type, MPAS_TimeInterval_type, &
                                mpas_set_time, mpas_set_timeInterval, mpas_get_time, operator(+), add_t_ti
    use mpas_timer
+   
+   !PXT - module with all new consistent scheme routines
+   use mpas_consistent
 
 #ifdef DO_PHYSICS
    use mpas_atmphys_driver_microphysics
@@ -5865,6 +5868,11 @@ module atm_time_integration
       real (kind=RKIND), dimension(:), pointer :: fzm, fzp
       real (kind=RKIND), dimension(:,:,:), pointer :: zb, zb3, zb_cell, zb3_cell
 
+      !PXT - Required for barycentric interpol
+      logical, pointer :: config_bary_interpol_edge
+      integer, dimension(:,:), pointer :: cellsOnVertex
+      real (kind=RKIND), dimension(1:3) :: bar_coefs
+      integer :: cell3, iVertex
 
       call mpas_pool_get_dimension(mesh, 'nCells', nCells)
       call mpas_pool_get_dimension(mesh, 'nEdges', nEdges)
@@ -5875,6 +5883,12 @@ module atm_time_integration
       call mpas_pool_get_array(mesh, 'nEdgesOnCell', nEdgesOnCell)
       call mpas_pool_get_array(mesh, 'edgesOnCell', edgesOnCell)
       call mpas_pool_get_array(mesh, 'edgesOnCell_sign', edgesOnCell_sign)
+
+      !PXT - Required for barycentric interpol
+      call mpas_pool_get_array(mesh, 'cellsOnVertex', cellsOnVertex)
+
+      !PXT additional flags
+      call mpas_pool_get_config(configs, 'config_bary_interpol_edge', config_bary_interpol_edge)
 
       call mpas_pool_get_array(state, 'theta_m', theta_m, time_lev)
       call mpas_pool_get_array(diag, 'theta', theta)
@@ -5912,17 +5926,61 @@ module atm_time_integration
             rho_zz(k,iCell) = rho(k,iCell) / zz(k,iCell)
          end do
       end do
-
+      
 !$OMP BARRIER
+      
+      !Flux calculation
+	   !PXT-Option for linear interpolation
+	   ! With this method the flux will always be second order accurate, even in distorted grids
+	   if(config_bary_interpol_edge)then
+        do iEdge=edgeStart,edgeEnd
+           !PXT - The barycentric coefficients should be pre-calculated for performance
+           !        for now, we calculate on runtime
+           call mpas_barycentric_coefs_edge(iEdge, mesh, iVertex, bar_coefs)
+           cell1 = cellsOnVertex(1,iVertex)
+           cell2 = cellsOnVertex(2,iVertex)
+           cell3 = cellsOnVertex(3,iVertex)
 
-      do iEdge=edgeStart,edgeEnd
-         cell1 = cellsOnEdge(1,iEdge)
-         cell2 = cellsOnEdge(2,iEdge)
-         do k=1,nVertLevels
-            ru(k,iEdge) = 0.5 * u(k,iEdge) * (rho_zz(k,cell1) + rho_zz(k,cell2))
+           do k=1,nVertLevels
+              !iCell1 = cellsOnVertex(1,iVertex)
+              !iCell2 = cellsOnVertex(2,iVertex)
+              !iCell3 = cellsOnVertex(3,iVertex)
+              !Barycentric interpolation
+              ru(k,iEdge) =  u(k,iEdge) * &
+                            (bar_coefs(1)*rho_zz(k,cell1) + &
+                             bar_coefs(2)*rho_zz(k,cell2) + &
+                             bar_coefs(3)*rho_zz(k,cell3))
+              !print*
+              !print*, "Edge:  ", iEdge, nEdges
+              !print*, "Cells  ", iCell1, iCell2, iCell3
+              !print*, "Values:", rho_zz(k,iCell1), rho_zz(k,iCell2), rho_zz(k,iCell3)
+              !print*, "Coef:  ", bar_coefs
+              !print*, "Interp:", ru(k,iEdge)
+              !diff=ru(k,iEdge)
+              !Original
+              !iCell1 = cellsOnEdge(1,iEdge)
+              !iCell2 = cellsOnEdge(2,iEdge)
+              !ru(k,iEdge) = 0.5 * u(k,iEdge) * (rho_zz(k,iCell1) + rho_zz(k,iCell2))
+              !diff=diff-ru(k,iEdge)
+              !print*
+              !print*, "Edge:  ", iEdge, nEdges
+              !print*, "Cells  ", iCell1, iCell2
+              !print*, "Values:", rho_zz(k,iCell1), rho_zz(k,iCell2)
+              !print*, "Interp:", ru(k,iEdge)
+              !print*, "Diff:  ", diff
+              !print*, "-----------------------------------------"
+           end do
+        end do
+     else !original mpas interpolation
+         do iEdge=edgeStart,edgeEnd
+            cell1 = cellsOnEdge(1,iEdge)
+            cell2 = cellsOnEdge(2,iEdge)
+            do k=1,nVertLevels
+               ru(k,iEdge) = 0.5 * u(k,iEdge) * (rho_zz(k,cell1) + rho_zz(k,cell2))
+            end do
          end do
-      end do
-
+      end if 
+      
 !$OMP BARRIER
 
       ! Compute rw (i.e. rho_zz * omega) from rho_zz, w, and ru.

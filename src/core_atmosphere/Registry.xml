@@ -243,6 +243,46 @@
                      units="-"
                      description="Number of halo layers for fields"
                      possible_values="Integer values, typically 2 or 3; DO NOT CHANGE"/>
+
+
+               <!-- PXT - Added configuration flags-->
+                <nml_option name="config_consistent_scheme"          type="logical"       default_value="false"
+                     units="-"
+                     description="Flag to change MPAS horizontal dynamics to Peixoto 2016 consistent scheme"
+                     possible_values="true or false"/>
+                <nml_option name="config_consistent_dyn"             type="logical"       default_value="false"
+                     units="-"
+                     description="Flag to change MPAS dynamics to include 3d coriolis term, therefore with consistent dynamics"
+                     possible_values="true or false"/>
+                <nml_option name="config_hcm_staggering"             type="logical"       default_value="false"
+                     units="-"
+                     description="Flag to change MPAS horiontal scheme to consiter HCm variable allocation"
+                     possible_values="true or false"/>
+                <nml_option name="config_KE_vecrecon_perot"          type="logical"       default_value="false"
+                     units="-"
+                     description="Flag to change MPAS horiontal kinetic energy scheme to Perot reconstruction"
+                     possible_values="true or false"/>
+                <nml_option name="config_KE_vecrecon_rbf"            type="logical"       default_value="false"
+                     units="-"
+                     description="Flag to change MPAS horiontal kinetic energy scheme to RBF reconstruction"
+                     possible_values="true or false"/>
+                <nml_option name="config_bary_interpol_edge"         type="logical"       default_value="false"
+                     units="-"
+                     description="Flag to change MPAS horiontal interpolation to barycentric interpolation on edges (important for HCm)"
+                     possible_values="true or false"/>
+                <nml_option name="config_bary_interpol_vertex"       type="logical"       default_value="false"
+                     units="-"
+                     description="Flag to change MPAS horiontal interpolation to barycentric interpolation on vertices (important for HCm)"
+                     possible_values="true or false"/>
+                <nml_option name="config_consist_perp"               type="logical"       default_value="false"
+                     units="-"
+                     description="Flag to change MPAS horiontal interpolation to Peixoto 2016 Coriolis scheme"
+                     possible_values="true or false"/>
+                <nml_option name="config_hollingsworth"              type="logical"       default_value="true"
+                     units="-"
+                     description="Flag to change MPAS horiontal Kinetic energy scheme a la Gassmann ((reduced Holingsworth instability)"
+                     possible_values="true or false"/>
+
         </nml_record>
 
         <nml_record name="damping" in_defaults="true">

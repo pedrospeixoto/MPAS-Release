@@ -262,6 +262,10 @@ module atm_core
       use mpas_vector_reconstruction
       use mpas_stream_manager
       use mpas_atm_boundaries, only : mpas_atm_setup_bdy_masks
+
+      !PXT added module with routines for consistent scheme
+      use mpas_consistent
+
 #ifdef DO_PHYSICS
 !     use mpas_atmphys_aquaplanet
       use mpas_atmphys_control
@@ -285,7 +289,8 @@ module atm_core
       type (mpas_pool_type), pointer :: atm_input
 
       integer :: iCell,iEdge,iVertex
-      
+
+      !PXT - This will be commented because will be done in solve_diagnostics
       real (kind=RKIND), dimension(:,:), pointer :: u, uReconstructX, uReconstructY, uReconstructZ, uReconstructZonal, uReconstructMeridional
       real (kind=RKIND), dimension(:), pointer :: meshScalingDel2, meshScalingDel4
       real (kind=RKIND), dimension(:), pointer :: meshScalingRegionalCell, meshScalingRegionalEdge
@@ -307,6 +312,17 @@ module atm_core
 
 
       logical, pointer :: config_do_restart, config_do_DAcycling
+
+      !PXT additional flags
+      logical, pointer :: config_consistent_scheme
+      logical, pointer :: config_consist_perp
+
+      !PXT additional flags
+      call mpas_pool_get_config(block % configs, 'config_consistent_scheme', config_consistent_scheme)
+      call mpas_pool_get_config(block % configs, 'config_consist_perp', config_consist_perp)
+
+      !PXT - Check correct usage of consistent scheme and HCm grid
+      call mpas_consist_verify_config(mesh, block % configs)
 
       call atm_compute_signs(mesh)
    
@@ -409,6 +425,14 @@ module atm_core
       call mpas_rbf_interp_initialize(mesh)
       call mpas_init_reconstruct(mesh)
 
+      !PXT - Calculate weights for consistent perp reconstruction
+      !  IMPORTANT - this will overwrite the following mesh arrays:
+      !         weightsOnEdge, nEdgesOnEdge, edgesOnEdge
+      if(config_consist_perp .or. config_consistent_scheme)then
+        call mpas_consist_weights_on_edge(mesh)
+      end if
+
+      !PXT - This will be moved to inside the solve_diagnostics
       call mpas_pool_get_array(state, 'u', u, 1)
       call mpas_pool_get_array(diag, 'uReconstructX', uReconstructX)
       call mpas_pool_get_array(diag, 'uReconstructY', uReconstructY)
