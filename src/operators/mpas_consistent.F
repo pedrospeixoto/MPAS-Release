@@ -65,7 +65,7 @@ module mpas_consistent
   real (kind=RKIND), dimension(:), pointer :: xEdge, yEdge, zEdge, latEdge, lonEdge, angleEdge, fEdge, fVertex
   integer, dimension(:,:), pointer :: verticesOnEdge
 
-  integer, dimension(2) :: onEdgeStart
+  !integer, dimension(2) :: onEdgeStart
   integer, dimension(2) :: onEdgeCount
 
   real (kind=RKIND) :: original_latitude_radians, original_longitude_radians, new_latitude_radians, new_longitude_radians
@@ -111,7 +111,7 @@ module mpas_consistent
 
   call mpas_pool_get_array(meshPool, 'verticesOnEdge', verticesOnEdge)
 
-  data onEdgeStart /1, 1/
+  !data onEdgeStart /1, 1/
   onEdgeCount(1) = 2
   onEdgeCount(2) = nEdges
 
@@ -142,8 +142,10 @@ module mpas_consistent
      zEdge(i) = bz / v
 
 !       Convert to lat lon
+     !print*, "Before:", i, latEdge(i), lonEdge(i)
      call convert_xl(xEdge(i), yEdge(i), zEdge(i), latEdge(i), lonEdge(i))
      !print*, i, xEdge(i), yEdge(i), zEdge(i), latEdge(i), lonEdge(i)
+     !print*, "After:", i, latEdge(i), lonEdge(i)
 
 !       compute new angle edge
      bx = -cos(lonEdge(i))*sin(latEdge(i)) + ax

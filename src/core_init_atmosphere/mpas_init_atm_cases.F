@@ -447,6 +447,18 @@ module init_atm_cases
          end do
       end if
 
+      !PXT - check if HCM grid correctly configured, if it is the case
+      ! Only for debug, comment out for production run
+      !block_ptr => domain % blocklist
+      !do while (associated(block_ptr))
+      !     call mpas_pool_get_subpool(block_ptr % structs, 'mesh', mesh)
+            !Configure grid for modified/consistent scheme
+            !call mpas_log_write( ' Converting grid to HCm staggering ' )
+            !call mpas_convert_grid_to_hcm(mesh)
+      !      call mpas_consist_verify_config(mesh, block_ptr % configs)
+      !      block_ptr => block_ptr % next
+      !end do
+   
    end subroutine init_atm_setup_case
 
 !----------------------------------------------------------------------------------------------------------
