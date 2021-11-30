@@ -32,7 +32,7 @@ import jigsawpy as jig
 
 
 def jigsaw_gen_sph_grid(cellWidth, x, y, earth_radius=6371.0e3,
-    basename="mesh", ):
+    basename="mesh" ):
 
     """
     A function for building a jigsaw spherical mesh
@@ -60,7 +60,6 @@ def jigsaw_gen_sph_grid(cellWidth, x, y, earth_radius=6371.0e3,
     opts.jcfg_file = basename+'.jig'
     opts.mesh_file = basename+'-MESH.msh'
     opts.hfun_file = basename+'-HFUN.msh'
-    on_sphere=True
 
     # save HFUN data to file
     hmat = jig.jigsaw_msh_t()
@@ -89,5 +88,29 @@ def jigsaw_gen_sph_grid(cellWidth, x, y, earth_radius=6371.0e3,
     #Call jigsaw
     process = subprocess.call(['jigsaw', opts.jcfg_file])
 
+    return opts.mesh_file 
 
+def jigsaw_gen_icos_grid(basename="mesh", level=4):
+
+    # setup files for JIGSAW
+    opts = jig.jigsaw_jig_t()
+    icos = jig.jigsaw_msh_t()
+    geom = jig.jigsaw_msh_t()
+
+    opts.geom_file = basename+'.msh'
+    opts.jcfg_file = basename+'.jig'
+    opts.mesh_file = basename+'-MESH.msh'
+
+    geom.mshID = "ellipsoid-mesh"
+    geom.radii = np.full(3, 1.000E+000, dtype=geom.REALS_t)
+        
+    jig.savemsh(opts.geom_file, geom)
+
+    opts.hfun_hmax = +1.
+    opts.mesh_dims = +2                 # 2-dim. simplexes
+    opts.optm_iter = +512
+    opts.optm_qtol = +1.0E-06
     
+    jig.cmd.icosahedron(opts, level, icos)    
+
+    return opts.mesh_file 

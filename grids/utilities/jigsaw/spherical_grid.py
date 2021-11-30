@@ -50,7 +50,7 @@ def cellWidthVsLatLon():
     """
     dlat = 1
     dlon = 1
-    constantCellWidth = 70
+    constantCellWidth = 70  #in km
 
     nlat = int(180/dlat) + 1
     nlon = int(360/dlon) + 1
@@ -84,25 +84,31 @@ def main(args):
 
     if(args.jig_opt==1):
 
+        #Density based grid
         cellWidth, lon, lat = cellWidthVsLatLon()
-       
-        jutil.jigsaw_gen_sph_grid(cellWidth, lon, lat, basename=out_basepath) 
+        mesh_file = jutil.jigsaw_gen_sph_grid(cellWidth, lon, lat, basename=out_basepath) 
 
-        jigsaw_to_netcdf(msh_filename=out_basepath+'-MESH.msh',
+    elif(args.jig_opt==2):
+
+        #Icosahedral grid
+        mesh_file = jutil.jigsaw_gen_icos_grid(basename=out_basepath, level=4)
+        
+    else:
+        print("Unknown option")
+        exit(1)
+    
+    #Convert jigsaw mesh to netcdf
+    jigsaw_to_netcdf(msh_filename=mesh_file,
                          output_name=out_basepath+'_triangles.nc', on_sphere=True,
                          sphere_radius=earth_radius)
 
-        write_netcdf(
+    #convert to mpas grid specific format
+    write_netcdf(
             convert(xarray.open_dataset(out_basepath+'_triangles.nc'), 
             dir=out_dir,
             graphInfoFileName=out_basepath+"_graph.info"),
             out_filename)
 
-    elif(args.jig_opt==2):
-            a=1
-    else:
-        print("Unknown option")
-        exit(1)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
