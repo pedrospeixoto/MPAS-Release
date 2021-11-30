@@ -16,7 +16,8 @@
 # 3) Install the mpas-tools pack
 #     $ conda install mpas_tools
 # 4) Use it with $ conda activate mpas-tools
-# 5) If necessary, install jigsawpy https://github.com/dengwirda/jigsaw-geo-python/
+#
+# - To install jigsaw use conda https://github.com/dengwirda/jigsaw-geo-python/ )
  
 import numpy as np
 import argparse
@@ -36,36 +37,13 @@ from mpas_tools.io import write_netcdf
 #import mpas_tools
 #print(mpas_tools.__file__) 
 
-def cellWidthVsLatLon():
-    """
-    Create cell width array for this mesh on a regular latitude-longitude grid.
-    Returns
-    -------
-    cellWidth : ndarray
-        m x n array of cell width in km
-    lon : ndarray
-        longitude in degrees (length n and between -180 and 180)
-    lat : ndarray
-        longitude in degrees (length m and between -90 and 90)
-    """
-    dlat = 1
-    dlon = 1
-    constantCellWidth = 70  #in km
-
-    nlat = int(180/dlat) + 1
-    nlon = int(360/dlon) + 1
-
-    lat = np.linspace(-90., 90., nlat)
-    lon = np.linspace(-180., 180., nlon)
-
-    cellWidth = constantCellWidth * np.ones((lat.size, lon.size))
-    return cellWidth, lon, lat
-
-
-def icosahedron():
-    a=1
-    return 1
-
+###TO DO:
+#
+# - Add a tetris case
+# - Variable resolution function - set ID number for each case
+# - Read mesh xyz from file and convert to mpas grid (after possible scvt optimization)
+#
+#
 
 
 def main(args):
@@ -85,7 +63,7 @@ def main(args):
     if(args.jig_opt==1):
 
         #Density based grid
-        cellWidth, lon, lat = cellWidthVsLatLon()
+        cellWidth, lon, lat = jutil.cellWidthVsLatLon()
         mesh_file = jutil.jigsaw_gen_sph_grid(cellWidth, lon, lat, basename=out_basepath) 
 
     elif(args.jig_opt==2):
