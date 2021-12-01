@@ -24,15 +24,22 @@ import argparse
 import os
 import numpy as np
 import subprocess
+import matplotlib.pyplot as plt
 
 #from mpas_tools.ocean import build_spherical_mesh
-from scipy import interpolate
+#from scipy import interpolate
 
 import jigsawpy as jig
 
-def cellWidthVsLatLon():
+def cellWidthVsLatLon(r=70):
     """
     Create cell width array for this mesh on a regular latitude-longitude grid.
+    
+    Input
+    ---------
+    r : float
+        constant desired cell width resolution in km
+
     Returns
     -------
     cellWidth : ndarray
@@ -42,18 +49,134 @@ def cellWidthVsLatLon():
     lat : ndarray
         longitude in degrees (length m and between -90 and 90)
     """
-    dlat = 1
-    dlon = 1
-    constantCellWidth = 70  #in km
+    dlat = r/1000 #Make the lat-lon grid ~ 10x finer than resolution at equator, where 1deg ~ 100km
+    dlon = dlat
+    constantCellWidth = r  #in km
 
-    nlat = int(180/dlat) + 1
-    nlon = int(360/dlon) + 1
+    nlat = int(180./dlat) + 1
+    nlon = int(360./dlon) + 1
 
     lat = np.linspace(-90., 90., nlat)
     lon = np.linspace(-180., 180., nlon)
 
     cellWidth = constantCellWidth * np.ones((lat.size, lon.size))
     return cellWidth, lon, lat
+
+
+def localrefVsLatLon(r, earth_radius=6371.0e3):
+    """
+    Create cell width array for this mesh on a locally refined latitude-longitude grid.
+    Input
+    ---------
+    r : float
+        minimun desired cell width resolution in km
+
+    Returns
+    -------
+    cellWidth : ndarray
+        m x n array of cell width in km
+    lon : ndarray
+        longitude in degrees (length n and between -180 and 180)
+    lat : ndarray
+        longitude in degrees (length m and between -90 and 90)
+    """
+    dlat = 0.5 #Make the lat-lon grid ~ 10x finer than resolution at equator, where 1deg ~ 100km
+    dlon = dlat
+    constantCellWidth = r  #in km
+
+    nlat = int(180./dlat) + 1
+    nlon = int(360./dlon) + 1
+
+    lat = np.linspace(-90., 90., nlat)
+    lon = np.linspace(-180., 180., nlon)
+
+    lons, lats = np.meshgrid(lon, lat)
+    #Calculate distances to center (lat=0,lon=0)
+    dists = latlon_to_distance_center(lons, lats)
+
+    if False:
+        h = plt.contourf(lons, lats, dists)
+        plt.axis('scaled')
+        plt.colorbar()
+        plt.show()
+
+    #Parameters
+    #------------------------------
+
+    # Radius (in km) of high resolution area
+    maxdist = 50
+    #(increase_of_resolution) / (distance)
+    slope = 10./600.
+    #Gammas
+    gammas = 150.
+    # distance (in km) of transition zone belt: ratio / slope
+    maxepsilons = 10000.
+    epsilons = gammas/slope
+    
+    if(epsilons > maxepsilons):
+        epsilons = maxepsilons
+
+
+    # initialize with resolution = r (min resolution)
+    resolution = r*np.ones(np.shape(dists))    
+
+    # point in transition zone
+    transition_zone = (dists > maxdist) & (dists <= maxdist + epsilons)
+    sx = (dists - maxdist ) *slope
+    transition_values = r + sx
+    resolution = np.where(transition_zone, transition_values, resolution)
+
+    # further points
+    far_from_center = (dists > maxdist + epsilons)
+    resolution[far_from_center] += epsilons * slope
+    
+    if False:
+        h = plt.contourf(lons, lats, resolution, cmap="viridis", levels=100)
+        plt.axis('scaled')
+        plt.colorbar()
+        plt.show()
+
+    print(np.min(resolution), np.max(resolution))
+
+    cellWidth = resolution #constantCellWidth * np.ones((lat.size, lon.size))
+    
+    return cellWidth, lon, lat
+
+def density_function_dists(dists, slope=None, gammas=None, maxdist=None,
+                           maxepsilons=None):
+
+    epsilons = gammas/slope
+    if epsilons > maxepsilons:
+        epsilons = maxepsilons
+
+    # initialize with resolution = 1
+    resolution = np.ones(np.shape(dists))
+
+    # point in transition zone
+    transition_zone = (dists > maxdist) & (dists <= maxdist + epsilons)
+    sx = (dists -maxdist ) *slope
+    transition_values = 1.0 + sx
+    resolution = np.where(transition_zone, transition_values, resolution)
+
+    # further points
+    far_from_center = (dists > maxdist + epsilons)
+    resolution[far_from_center] += epsilons * slope
+
+    # convert to density
+    dens_f = 1 / resolution**2
+    return dens_f
+
+
+def latlon_to_distance_center(lon, lat):
+    lon, lat = map(np.radians, [lon, lat])
+
+    haver_formula = np.sin(lat / 2.0) ** 2 + \
+                    np.cos(lat) * np.sin(lon / 2.0) ** 2
+
+    dists = 2 * np.arcsin(np.sqrt(haver_formula)) * 6367
+    return dists
+
+
 
 
 def jigsaw_gen_sph_grid(cellWidth, x, y, earth_radius=6371.0e3,
@@ -106,7 +229,10 @@ def jigsaw_gen_sph_grid(cellWidth, x, y, earth_radius=6371.0e3,
     opts.hfun_hmax = float("inf")
     opts.hfun_hmin = 0.0
     opts.mesh_dims = +2  # 2-dim. simplexes
+    opts.mesh_iter = 500000
     opts.optm_qlim = 0.9375
+    opts.optm_qtol = 1.0e-6
+    opts.optm_iter = 500000
     opts.verbosity = +1
     jig.savejig(opts.jcfg_file, opts)
     
