@@ -383,6 +383,7 @@
 
 !local pointers:
  character(len=StrKIND),pointer:: config_convection_scheme,      &
+                                  config_fdda_scheme,            &
                                   config_lsm_scheme,             &
                                   config_microp_scheme,          &
                                   config_radt_lw_scheme,         &
@@ -419,6 +420,7 @@
 !call mpas_log_write('--- enter subroutine physics_run_init:')
 
  call mpas_pool_get_config(configs,'config_convection_scheme',config_convection_scheme)
+ call mpas_pool_get_config(configs,'config_fdda_scheme'      ,config_fdda_scheme      )
  call mpas_pool_get_config(configs,'config_lsm_scheme'       ,config_lsm_scheme       )
  call mpas_pool_get_config(configs,'config_microp_scheme'    ,config_microp_scheme    )
  call mpas_pool_get_config(configs,'config_radt_lw_scheme'   ,config_radt_lw_scheme   )

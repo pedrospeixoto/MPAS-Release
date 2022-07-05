@@ -110,7 +110,9 @@
 ! * added the local variables cosa_p and sina_p needed in call to subroutine gwdo after updating module_bl_gwdo.F
 !   to that of WRF version 4.0.2
 !   Laura D. Fowler (laura@ucar.edu) / 2019-01-30.
-
+! * added four-dimensional data assimilate arrays and control variables
+!   Marta Gil Bardaji (marta.gil@vortexfdc.com) / 2022-07-05
+!   Basen on v4 from O. Russell Bullock Jr. (bullock.russell@epa.gov) / 2016-03-21.
 
 !=================================================================================================================
 !wrf-variables:these variables are needed to keep calls to different physics parameterizations

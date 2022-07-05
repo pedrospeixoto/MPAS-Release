@@ -1,0 +1,469 @@
+!----------------------------------------------------
+!   Modifications made by Marta Gil Bardaji
+!   Date: July 2022
+!
+!   Features:
+!   - Add analysis nudging FDDA
+!       https://gmd.copernicus.org/articles/11/2897/2018/
+!       Bullock Jr., O. R., Foroutan, H., Gilliam, R. C., and Herwehe, J. A.:
+!       Adding four-dimensional data assimilation by analysis nudging to
+!       the Model for Prediction Across Scales – Atmosphere (version 4.0),
+!       Geosci. Model Dev., 11, 2897–2922,
+!       https://doi.org/10.5194/gmd-11-2897-2018, 2018.
+!
+!
+!   All Modifications where marked with MGB text and a comment
+!   All things that would be moved/removed was commented
+
+!   Based on MPAS version 7.2 (Feb 2022), with PXT modifications
+!   (see PXT_modifications_to_MPAS.txt)
+
+
+----------------------------------
+        Makefile
+----------------------------------
+NOT CHANGED * ifort:
+
+    Originally we have
+    ifort:
+        ( $(MAKE) all \
+        "FC_PARALLEL = mpif90" \
+        "CC_PARALLEL = mpicc" \
+        "CXX_PARALLEL = mpicxx" \
+
+    In the Nugging version the suggested modification is:
+    ifort:
+        ( $(MAKE) all \
+        "FC_PARALLEL = mpiifort" \
+        "CC_PARALLEL = mpiicc" \
+        "CXX_PARALLEL = mpiicpc" \
+    We didn't CHANGE THIS (as of yet), because I don't understand
+    why would we need to.
+
+
+--------------------------------------
+        ATMOSPHERE_MODEL: Registry.xml
+--------------------------------------
+
+804-815
+
+        <var name="rthfddaten"/>
+        <var name="rqvfddaten"/>
+        <var name="rufddaten"/>
+        <var name="rvfddaten"/>
+        <var name="th_fdda_old"/>
+        <var name="qv_fdda_old"/>
+        <var name="u_fdda_old"/>
+        <var name="v_fdda_old"/>
+        <var name="th_fdda_new"/>
+        <var name="qv_fdda_new"/>
+        <var name="u_fdda_new"/>
+        <var name="v_fdda_new"/>
+
+
+    - stream fdda
+
+        <stream name="fdda"
+                type="input"
+                filename_template="x1.40962.fdda.nc"
+                input_interval="1:00:00"
+                immutable="true">
+                <var name="qv_fdda_new"/>
+                <var name="th_fdda_new"/>
+                <var name="u_fdda_new"/>
+                <var name="v_fdda_new"/>
+        </stream>
+
+    - var struct fdda
+
+        <var_struct name="fdda" time_levs="1">
+                <var name="qv_fdda_new"  type="real"  dimensions="nVertLevels nCells Time"/>
+                <var name="th_fdda_new"  type="real"  dimensions="nVertLevels nCells Time"/>
+                <var name="u_fdda_new"   type="real"  dimensions="nVertLevels nCells Time"/>
+                <var name="v_fdda_new"   type="real"  dimensions="nVertLevels nCells Time"/>
+                <var name="qv_fdda_old"  type="real"  dimensions="nVertLevels nCells Time"/>
+                <var name="th_fdda_old"  type="real"  dimensions="nVertLevels nCells Time"/>
+                <var name="u_fdda_old"   type="real"  dimensions="nVertLevels nCells Time"/>
+                <var name="v_fdda_old"   type="real"  dimensions="nVertLevels nCells Time"/>
+        </var_struct>
+
+
+    - Add config options. In v7 you need units, description and possible values.
+    I put the values to the best of my knowledge, adding (?) to places I thought
+    I could check better
+
+            <nml_option name="config_fdda_scheme"                type="character"     default_value="off"        in_defaults="false"
+                 units="-"
+                 description="configuration for analysis nudging"
+                 possible_values="`on',`off'"/>
+            <nml_option name="config_fdda_int"                   type="real"          default_value="21600."     in_defaults="false"
+                 units="(?)"
+                 description="config_fdda_int (?)"
+                 possible_values="Possitive reals (?)"/>
+            <nml_option name="config_fdda_scale_min"             type="real"          default_value="0."         in_defaults="false"
+                 units="(?)"
+                 description="config_fdda_scale_min (?)"
+                 possible_values="Possitive reals (?)"/>
+            <nml_option name="config_fdda_scale_max"             type="real"          default_value="100000."    in_defaults="false"
+                 units="(?)"
+                 description="config_fdda_scale_max"
+                 possible_values="Possitive reals (?)"/>
+            <nml_option name="config_fdda_t"                     type="logical"       default_value="false"      in_defaults="false"
+                 units="-"
+                 description="Activate temperature nudging"
+                 possible_values="`true',`false'"/>
+            <nml_option name="config_fdda_t_coef"                type="real"          default_value="3.0e-4"     in_defaults="false"
+                 units="(?)"
+                 description="Nudging coefficient for t"
+                 possible_values="Real. Recommended order e-4"/>
+            <nml_option name="config_fdda_t_in_pbl"              type="logical"       default_value="true"       in_defaults="false"
+                 units="-"
+                 description="Activate temperature nudging in pbl"
+                 possible_values="`true',`false'"/>
+            <nml_option name="config_fdda_t_min_layer"           type="integer"       default_value="0"          in_defaults="false"
+                 units="-"
+                 description="config_fdda_t_min_layer"
+                 possible_values="Positive integers (?)"/>
+            <nml_option name="config_fdda_q"                     type="logical"       default_value="false"      in_defaults="false"
+                 units="-"
+                 description="Activate humidity nudging"
+                 possible_values="`true',`false'"/>
+            <nml_option name="config_fdda_q_coef"                type="real"          default_value="3.0e-4"     in_defaults="false"
+                 units="-"
+                 description="Nudging coefficient for q"
+                 possible_values="Real. Recommended order e-4"/>
+            <nml_option name="config_fdda_q_in_pbl"              type="logical"       default_value="true"       in_defaults="false"
+                 units="-"
+                 description="Activate humidity nudging in pbl"
+                 possible_values="`true',`false'"/>
+            <nml_option name="config_fdda_q_min_layer"           type="integer"       default_value="0"          in_defaults="false"
+                 units="-"
+                 description="config_fdda_q_min_layer"
+                 possible_values="Positive integers (?)"/>
+            <nml_option name="config_fdda_uv"                    type="logical"       default_value="false"      in_defaults="false"
+                 units="-"
+                 description="Activate wind nudging"
+                 possible_values="`true',`false'"/>
+            <nml_option name="config_fdda_uv_coef"               type="real"          default_value="3.0e-4"     in_defaults="false"
+                 units="-"
+                 description="Nudging coefficient for wind"
+                 possible_values="Real. Recommended order e-4"/>
+            <nml_option name="config_fdda_uv_in_pbl"             type="logical"       default_value="true"       in_defaults="false"
+                 units="-"
+                 description="Activate wind nudging in the pbl"
+                 possible_values="`true',`false'"/>
+            <nml_option name="config_fdda_uv_min_layer"          type="integer"       default_value="0"          in_defaults="false"
+                 units="-"
+                 description="config_fdda_uv_min_layer"
+                 possible_values="Positive integers (?)"/>
+
+    - Tendencies 4-d data
+
+            <!-- ================================================================================================== -->
+            <!-- ================================================================================================== -->
+            <!-- TENDENCIES FROM FOUR DIMENSIONAL DATA ASSIMILATION:                                                -->
+            <!-- ================================================================================================== -->
+            <var name="rthfddaten"    type="real"     dimensions="nVertLevels nCells Time" units="K s^{-1}"
+                 description="tendency of potential temperature due to fdda"
+                 packages="ffda"/>
+            <var name="rqvfddaten"    type="real"     dimensions="nVertLevels nCells Time" units="kg/kg s^{-1}"
+                 description="tendency of water vapor mixing ratio due to fdda"
+                 packages="ffda"/>
+            <var name="rufddaten"     type="real"     dimensions="nVertLevels nCells Time" units="m s^{-1}"
+                 description="tendency of zonal wind due to fdda "
+                 packages="ffda"/>
+            <var name="rvfddaten"     type="real"     dimensions="nVertLevels nCells Time" units="m s^{-1}"
+                 description="tendency of meridional wind due to fdda"
+                 packages="ffda"/>
+
+        and add "fdda" to the packages list (line 386)
+
+            <package name="fdda" description="Analysis nudging"/>
+
+
+
+--------------------------------------
+        ATMOSPHERE_MODEL: dynamics
+--------------------------------------
+
+NOT CHANGED * mpas_atm_time_integration.F
+
+    Modification wrt version 4:
+    This modified version calculates total moist air mass and total
+    water vapor mass at every time step and writes them to Fortran
+    units 30 and 40, respectively.
+
+    I think this is for testing purposes. We didn't CHANGE THIS (as of yet)
+
+    line 161:
+        ! mass conservation test --- Hosein Foroutan, March 2016
+        real (kind=RKIND), dimension(:,:), pointer :: zgrid
+        real (kind=RKIND), dimension(:), pointer :: areaCell
+        real (kind=RKIND) :: mass_air, mass_qv, par_volume
+        real (kind=RKIND) :: global_mass_air, global_mass_qv, global_volume
+        real (kind=RKIND), dimension(:,:), pointer :: rho_zz
+
+    line 680:
+        !----- mass conservation test --- Hosein Foroutan, March 2016
+        block => domain % blocklist
+        do while (associated(block))
+            call mpas_pool_get_subpool(block % structs, 'state', state)
+            call mpas_pool_get_subpool(block % structs, 'mesh', mesh)
+            call mpas_pool_get_array(state, 'scalars', scalars, 2)
+            call mpas_pool_get_dimension(state, 'nCellsSolve', nCellsSolve)
+            call mpas_pool_get_array(state, 'rho_zz', rho_zz, 2)
+            call mpas_pool_get_dimension(state, 'nVertLevels', nVertLevels)
+            call mpas_pool_get_dimension(state, 'num_scalars', num_scalars)
+            call mpas_pool_get_array(mesh, 'zgrid', zgrid)
+            call mpas_pool_get_array(mesh, 'areaCell', areaCell)
+            mass_air   = 0.0
+            mass_qv    = 0.0
+            par_volume = 0.0
+               do iCell = 1, nCellsSolve
+               do k = 1, nVertLevels
+                  mass_air   = mass_air   + rho_zz(k,iCell) * areaCell(iCell) * (zgrid(k+1,iCell) - zgrid(k,iCell))
+                  mass_qv    = mass_qv    + rho_zz(k,iCell) * scalars(1,k,iCell) * areaCell(iCell) * (zgrid(k+1, iCell) - zgrid(k,iCell))
+                  par_volume = par_volume + areaCell(iCell) * (zgrid(k+1, iCell) - zgrid(k,iCell))
+               end do
+               end do
+            call mpas_dmpar_sum_real(domain % dminfo, mass_air   , global_mass_air )
+            call mpas_dmpar_sum_real(domain % dminfo, mass_qv    , global_mass_qv  )
+            call mpas_dmpar_sum_real(domain % dminfo, par_volume , global_volume   )
+            write(30,*) global_mass_air
+            write(40,*) global_mass_qv
+            block => block % next
+        end do
+
+
+--------------------------------------
+        ATMOSPHERE_MODEL: physics
+--------------------------------------
+
+* Makefile:
+
+    Added mpas_atmphys_fdda to the needed places
+
+        OBJS = \
+            mpas_atmphys_fdda.o                \
+
+        mpas_atmphys_driver.o: \
+            mpas_atmphys_fdda.o \
+
+        mpas_atmphys_fdda.o: \
+            mpas_atmphys_constants.o \
+            mpas_atmphys_utilities.o \
+            mpas_atmphys_vars.o \
+
+
+* mpas_atmphys_vars.F
+
+    * add comment 113-115
+
+        ! * added four-dimensional data assimilate arrays and control variables
+        !   Marta Gil Bardaji (marta.gil@vortexfdc.com) / 2022-07-05
+        !   Basen on v4 from O. Russell Bullock Jr. (bullock.russell@epa.gov) / 2016-03-21.
+
+    * We don't have to initialize fdd_scheme, we can use config_fdda_scheme
+
+
+* mpas_atmphys_control.F
+
+    - Add config_fdda_scheme in local pointers (line 98)
+
+    - Add in line 114
+         call mpas_pool_get_config(configs,'config_fdda_scheme',
+                config_fdda_scheme)
+
+    - Add control for fdda scheme logic 166-173
+
+        !fdda scheme:
+         if(.not. (config_fdda_scheme .eq. 'off'        .or. &
+                   config_fdda_scheme .eq. 'analysis'   .or. &
+                   config_fdda_scheme .eq. 'scaled'     )) then
+            write(mpas_err_message,'(A,A10)') 'illegal value for config_fdda_scheme:', &
+                  trim(config_fdda_scheme)
+            call physics_error_fatal(mpas_err_message)
+         endif
+
+    - DIFFERENT FROM V4! Add log (line 321)
+
+        In version 4 it was:
+             write(0,*) '    config_fdda_scheme = ', trim(config_fdda_scheme)
+
+        But by comparing the corresponding lines in version 7.2, I assume it would be:
+             call mpas_log_write('    config_fdda_scheme         = '//trim(config_fdda_scheme))
+
+
+* mpas_atmphys_driver.F
+
+    - Add fdda to header line 22
+        use mpas_atmphys_fdda
+
+    - Add comment line 72
+        ! apply_fdda                  : applies four-dimensional data assimilation.
+
+    - Add to local pointers line 122 (mpas_pool_type)
+        fdda,         &
+
+    - Add to local pointers line 133 (len=StrKIND)
+        config_fdda_scheme,       &
+
+    - Add call line 160
+         call mpas_pool_get_config(domain%configs,'config_fdda_scheme'      ,config_fdda_scheme      )
+
+    - Add check if fdda scheme is on line 177-178
+         config_sfclayer_scheme   .ne. 'off' .or. &
+         config_fdda_scheme       .ne. 'off') then
+
+    - Add call in block (line 185)
+        call mpas_pool_get_subpool(block%structs,'fdda'        ,fdda        )
+
+    - Apply FDDA! Add in lines (342-348)
+
+            !call to FDDA scheme within MPAS physics (not WRF physics)
+            if(config_fdda_scheme .ne. 'off') then
+               time_lev = 1
+               call apply_fdda(xtime_s,block%configs,mesh,state,time_lev,fdda,diag,diag_physics,tend_physics)
+            endif
+
+        COMMENT: That is not the structure in version 7.2! So maybe it won't work
+        without adding the parallelization like !$OMP PARALLEL DO
+
+        For example, PBL:
+
+            v4:
+
+                !call to pbl schemes:
+                if(config_pbl_scheme .ne. 'off' .and. config_sfclayer_scheme .ne. 'off') then
+                   call allocate_pbl
+                   call driver_pbl(sfc_input,diag_physics,tend_physics)
+                   end do
+                   call deallocate_pbl
+
+                endif
+
+            v7:
+
+                !call to pbl schemes:
+                if(config_pbl_scheme .ne. 'off' .and. config_sfclayer_scheme .ne. 'off') then
+                   call allocate_pbl(block%configs)
+            !$OMP PARALLEL DO
+                   do thread=1,nThreads
+                      call driver_pbl(itimestep,block%configs,mesh,sfc_input,
+                                      diag_physics,tend_physics, &
+                                      cellSolveThreadStart(thread),cellSolveThreadEnd(thread))
+                   end do
+            !$OMP END PARALLEL DO
+                   call deallocate_pbl(block%configs)
+
+                endif
+
+
+* mpas_atmphys_manager.F
+
+    - add in local pointer (line 386)
+
+          config_fdda_scheme,            &
+
+    - add in get config (line 423)
+
+         call mpas_pool_get_config(configs,'config_fdda_scheme'      ,config_fdda_scheme      )
+
+    - QUESTION!! According to v4 we should add in init local physics variables,
+        but I don't see those lines in the v7.2 file (for any scheme)
+
+        v4:
+
+            !initialization local physics variables:
+             num_months = nMonths
+             num_soils  = nSoilLevels
+
+             convection_scheme = trim(config_convection_scheme)
+             lsm_scheme        = trim(config_lsm_scheme)
+             microp_scheme     = trim(config_microp_scheme)
+             pbl_scheme        = trim(config_pbl_scheme)
+             gwdo_scheme       = trim(config_gwdo_scheme)
+             radt_cld_scheme   = trim(config_radt_cld_scheme)
+             radt_lw_scheme    = trim(config_radt_lw_scheme)
+             radt_sw_scheme    = trim(config_radt_sw_scheme)
+             sfclayer_scheme   = trim(config_sfclayer_scheme)
+
+             if(trim(config_lsm_scheme) .eq. "noah") sf_surface_physics = 2
+
+        v7:
+            !initialization local physics variables:
+             num_months = nMonths
+             num_soils  = nSoilLevels
+
+             if(trim(config_lsm_scheme) .eq. "noah") sf_surface_physics = 2
+
+        Where are they initialized in v7?? Keep an eye on this.
+
+
+* mpas_atmphys_todynamics.F
+
+    - add pointer to local variables line 83
+
+        config_fdda_scheme
+
+    - line 99
+         real(kind=RKIND),dimension(:,:),pointer:: rthfddaten,rqvfddaten,rufddaten,rvfddaten
+
+    - add rufddaten_Edge to pointer list in line 110
+        real(kind=RKIND),dimension(:,:),pointer:: rublten_Edge,rucuten_Edge,rufddaten_Edge
+
+    - add mpas_pool_get_config (line 126)
+
+        call mpas_pool_get_config(configs, 'config_fdda_scheme', config_fdda_scheme)
+
+    - add tend_physics pool array 197-170
+
+         call mpas_pool_get_array(tend_physics, 'rufddaten', rufddaten)
+         call mpas_pool_get_array(tend_physics, 'rvfddaten', rvfddaten)
+         call mpas_pool_get_array(tend_physics, 'rthfddaten', rthfddaten)
+         call mpas_pool_get_array(tend_physics, 'rqvfddaten', rqvfddaten)
+
+    - add coupled tendencies 214-234
+
+        !add coupled tendencies due to four-dimensional data assimilation (fdda):
+        if(config_fdda_scheme .ne. 'off') then
+            allocate(rufddaten_Edge(nVertLevels,nEdges))
+            rufddaten_Edge(:,:) = 0.
+            call tend_toEdges(block,mesh,rufddaten,rvfddaten,rufddaten_Edge)
+            do i = 1, nEdgesSolve
+                do k  = 1, nVertLevels
+                   tend_u(k,i)=tend_u(k,i)+rufddaten_Edge(k,i)*mass_edge(k,i)
+                enddo
+            enddo
+            deallocate(rufddaten_Edge)
+            do i = 1, nCellsSolve
+                do k = 1, nVertLevels
+                   tend_th(k,i) = tend_th(k,i) + rthfddaten(k,i)*mass(k,i)
+                   tend_qv(k,i) = tend_qv(k,i) + rqvfddaten(k,i)*mass(k,i)
+                enddo
+            enddo
+        endif
+
+
+* mpas_atmphys_fdda.F
+
+    I have kept a mpas_atmphys_fdda.F.v4 to keep the original version
+    of the file designed for version 4 and make changes to adapt to version 7.
+
+
+    - remove  use mpas_derived_types form line 4 and add some other imports:
+
+         module mpas_atmphys_fdda
+         use mpas_kind_types
+         use mpas_pool_routines
+         use mpas_timer, only : mpas_timer_start, mpas_timer_stop
+
+    - add the fdda_scheme variable definition
+        (line 88)
+            character(len=StrKIND),pointer:: fdda_scheme
+        (line 107)
+             call mpas_pool_get_config(configs,'config_fdda_scheme',fdda_scheme)
+
+    - change write(0,*) MESSAGE to call mpas_log_write(MESSAGE)
+
+    - add mpas timer start and stop for FDDA

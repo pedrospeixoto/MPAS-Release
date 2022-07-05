@@ -79,7 +79,8 @@
 
 !local variables:
  character(len=StrKIND), pointer :: config_pbl_scheme, config_convection_scheme, &
-                                    config_radt_lw_scheme, config_radt_sw_scheme
+                                    config_radt_lw_scheme, config_radt_sw_scheme, &
+                                    config_fdda_scheme
 
  integer:: i,iCell,k,n
  integer,pointer:: index_qv, index_qc, index_qr, index_qi, index_qs, index_qg
@@ -96,6 +97,7 @@
  real(kind=RKIND),dimension(:,:),pointer:: rthcuten,rqvcuten,rqccuten, &
                                            rqrcuten,rqicuten,rqscuten, &
                                            rucuten,rvcuten
+ real(kind=RKIND),dimension(:,:),pointer:: rthfddaten,rqvfddaten,rufddaten,rvfddaten
  real(kind=RKIND),dimension(:,:),pointer:: rthratenlw,rthratensw                                    
  real(kind=RKIND),dimension(:,:),pointer:: rthdynten
  
@@ -106,7 +108,7 @@
  real(kind=RKIND):: coeff
 
  real(kind=RKIND):: tem
- real(kind=RKIND),dimension(:,:),pointer:: rublten_Edge,rucuten_Edge
+ real(kind=RKIND),dimension(:,:),pointer:: rublten_Edge,rucuten_Edge,rufddaten_Edge
 
  real(kind=RKIND),dimension(:,:),allocatable:: theta,tend_th
 
@@ -121,6 +123,7 @@
  call mpas_pool_get_config(configs, 'config_convection_scheme', config_convection_scheme)
  call mpas_pool_get_config(configs, 'config_radt_lw_scheme', config_radt_lw_scheme)
  call mpas_pool_get_config(configs, 'config_radt_sw_scheme', config_radt_sw_scheme)
+ call mpas_pool_get_config(configs, 'config_fdda_scheme', config_fdda_scheme)
 
  call mpas_pool_get_array(state, 'theta_m', theta_m, 1)
  call mpas_pool_get_array(state, 'scalars', scalars, 1)
@@ -160,6 +163,11 @@
  call mpas_pool_get_array(tend_physics, 'rthdynten', rthdynten)
 
  call mpas_pool_get_array(tend,'rt_diabatic_tend',tend_diabatic)
+
+ call mpas_pool_get_array(tend_physics, 'rufddaten', rufddaten)
+ call mpas_pool_get_array(tend_physics, 'rvfddaten', rvfddaten)
+ call mpas_pool_get_array(tend_physics, 'rthfddaten', rthfddaten)
+ call mpas_pool_get_array(tend_physics, 'rqvfddaten', rqvfddaten)
 
  call mpas_pool_get_array(tend_physics, 'rthratenlw', rthratenlw)
  call mpas_pool_get_array(tend_physics, 'rthratensw', rthratensw)
@@ -401,6 +409,25 @@
 
             case default
         end select convection_select
+    endif
+
+    !add coupled tendencies due to four-dimensional data assimilation (fdda):
+    if(config_fdda_scheme .ne. 'off') then
+        allocate(rufddaten_Edge(nVertLevels,nEdges))
+        rufddaten_Edge(:,:) = 0.
+        call tend_toEdges(block,mesh,rufddaten,rvfddaten,rufddaten_Edge)
+        do i = 1, nEdgesSolve
+            do k  = 1, nVertLevels
+               tend_u(k,i)=tend_u(k,i)+rufddaten_Edge(k,i)*mass_edge(k,i)
+            enddo
+        enddo
+        deallocate(rufddaten_Edge)
+        do i = 1, nCellsSolve
+            do k = 1, nVertLevels
+               tend_th(k,i) = tend_th(k,i) + rthfddaten(k,i)*mass(k,i)
+               tend_qv(k,i) = tend_qv(k,i) + rqvfddaten(k,i)*mass(k,i)
+            enddo
+        enddo
     endif
 
     !add coupled tendencies due to longwave radiation:
