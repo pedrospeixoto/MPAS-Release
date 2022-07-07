@@ -383,7 +383,7 @@
                 <package name="cu_tiedtke_in" description="parameterization of Tiedtke convection."/>
                 <package name="bl_ysu_in" description="parameterization of YSU Planetary Boundary Layer."/>
                 <package name="bl_mynn_in" description="parameterization of MYNN Planetary Boundary Layer."/>
-				<package name="fdda" description="Analysis nudging"/>
+				<package name="fdda_in" description="Analysis nudging"/>
                 <package name="iau" description="Incremental Analysis Update"/>
                 <package name="limited_area" description="Limited-area simulations, which have lateral boundaries"/>
                 <package name="jedi_da" description="Data Assimilation in JEDI framework"/>
@@ -1526,7 +1526,7 @@
                 </var_array>
         </var_struct>
 
-        <var_struct name="fdda" time_levs="1">
+        <var_struct name="fdda" time_levs="1" packages="fdda_in">
                 <var name="qv_fdda_new"  type="real"  dimensions="nVertLevels nCells Time"/>
                 <var name="th_fdda_new"  type="real"  dimensions="nVertLevels nCells Time"/>
                 <var name="u_fdda_new"   type="real"  dimensions="nVertLevels nCells Time"/>
@@ -2019,8 +2019,8 @@
 
                 <nml_option name="config_fdda_scheme"                type="character"     default_value="off"        in_defaults="false"
                      units="-"
-                     description="configuration for analysis nudging"
-                     possible_values="`on',`off'"/>
+                     description="configuration for nudging: scaled / analysis / off"
+                     possible_values="`scaled',`analysis',`off'"/>
                 <nml_option name="config_fdda_int"                   type="real"          default_value="21600."     in_defaults="false"
                      units="(?)"
                      description="config_fdda_int (?)"
@@ -2966,16 +2966,16 @@
                 <!-- ================================================================================================== -->
                 <var name="rthfddaten"    type="real"     dimensions="nVertLevels nCells Time" units="K s^{-1}"
                      description="tendency of potential temperature due to fdda"
-                     packages="ffda"/>
+                     packages="fdda_in"/>
                 <var name="rqvfddaten"    type="real"     dimensions="nVertLevels nCells Time" units="kg/kg s^{-1}"
-                     description="tendency of water vapor mixing ratio due to fdda"
-                     packages="ffda"/>
+                     description="tendency of water vapor mixing ratio due to fdda_in"
+                     packages="fdda_in"/>
                 <var name="rufddaten"     type="real"     dimensions="nVertLevels nCells Time" units="m s^{-1}"
                      description="tendency of zonal wind due to fdda "
-                     packages="ffda"/>
+                     packages="fdda_in"/>
                 <var name="rvfddaten"     type="real"     dimensions="nVertLevels nCells Time" units="m s^{-1}"
                      description="tendency of meridional wind due to fdda"
-                     packages="ffda"/>
+                     packages="fdda_in"/>
 
                 <!-- ================================================================================================== -->
                 <!-- TENDENCIES FROM PARAMETERIZATION OF CONVECTION:                                                    -->

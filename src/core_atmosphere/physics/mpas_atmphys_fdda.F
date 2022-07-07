@@ -85,7 +85,7 @@
  logical,pointer:: fdda_q, fdda_q_in_pbl
  logical,pointer:: fdda_uv,fdda_uv_in_pbl
  logical,pointer:: config_do_restart
- character(len=StrKIND),pointer:: fdda_scheme
+ character(len=StrKIND),pointer:: config_fdda_scheme
 
 !local variables:
  real(kind=RKIND)  :: tfrac
@@ -102,10 +102,10 @@
  real(kind=RKIND),parameter:: rvrd   = R_v/R_d
 
 !==================================================================================================
- call mpas_log_write('--- enter apply_fdda:  at xtime_s = ',xtime_s)
+ call mpas_log_write('--- enter apply_fdda')
  call mpas_timer_start('FDDA')
 
- call mpas_pool_get_config(configs,'config_fdda_scheme',fdda_scheme)
+ call mpas_pool_get_config(configs,'config_fdda_scheme', config_fdda_scheme)
  call mpas_pool_get_config(configs,'config_do_restart' ,config_do_restart )
  call mpas_pool_get_config(configs,'config_dt' ,config_dt )
  call mpas_pool_get_config(configs,'config_fdda_int',fdda_int)
@@ -158,7 +158,7 @@
 !calculate time fraction within FDDA target data interval
  tfrac = mod(xtime_s,fdda_int)/fdda_int
 
- fdda_select: select case(fdda_scheme)
+ fdda_select: select case(config_fdda_scheme)
 
     case ("scaled")
 

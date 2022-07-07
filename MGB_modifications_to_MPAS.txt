@@ -45,7 +45,11 @@ NOT CHANGED * ifort:
         ATMOSPHERE_MODEL: Registry.xml
 --------------------------------------
 
-804-815
+    - Add "fdda_in" to the packages list (line 386)
+
+            <package name="fdda_in" description="Analysis nudging"/>
+
+    - Add tendency values 804-815
 
         <var name="rthfddaten"/>
         <var name="rqvfddaten"/>
@@ -76,7 +80,7 @@ NOT CHANGED * ifort:
 
     - var struct fdda
 
-        <var_struct name="fdda" time_levs="1">
+        <var_struct name="fdda" time_levs="1" packages="fdda_in">
                 <var name="qv_fdda_new"  type="real"  dimensions="nVertLevels nCells Time"/>
                 <var name="th_fdda_new"  type="real"  dimensions="nVertLevels nCells Time"/>
                 <var name="u_fdda_new"   type="real"  dimensions="nVertLevels nCells Time"/>
@@ -94,8 +98,8 @@ NOT CHANGED * ifort:
 
             <nml_option name="config_fdda_scheme"                type="character"     default_value="off"        in_defaults="false"
                  units="-"
-                 description="configuration for analysis nudging"
-                 possible_values="`on',`off'"/>
+                 description="configuration for nudging: scaled / analysis / off"
+                 possible_values="`scaled',`analysis',`off'"/>
             <nml_option name="config_fdda_int"                   type="real"          default_value="21600."     in_defaults="false"
                  units="(?)"
                  description="config_fdda_int (?)"
@@ -165,20 +169,16 @@ NOT CHANGED * ifort:
             <!-- ================================================================================================== -->
             <var name="rthfddaten"    type="real"     dimensions="nVertLevels nCells Time" units="K s^{-1}"
                  description="tendency of potential temperature due to fdda"
-                 packages="ffda"/>
+                 packages="fdda_in"/>
             <var name="rqvfddaten"    type="real"     dimensions="nVertLevels nCells Time" units="kg/kg s^{-1}"
                  description="tendency of water vapor mixing ratio due to fdda"
-                 packages="ffda"/>
+                 packages="fdda_in"/>
             <var name="rufddaten"     type="real"     dimensions="nVertLevels nCells Time" units="m s^{-1}"
                  description="tendency of zonal wind due to fdda "
-                 packages="ffda"/>
+                 packages="fdda_in"/>
             <var name="rvfddaten"     type="real"     dimensions="nVertLevels nCells Time" units="m s^{-1}"
                  description="tendency of meridional wind due to fdda"
-                 packages="ffda"/>
-
-        and add "fdda" to the packages list (line 386)
-
-            <package name="fdda" description="Analysis nudging"/>
+                 packages="fdda_in"/>
 
 
 
@@ -460,10 +460,53 @@ NOT CHANGED * mpas_atm_time_integration.F
 
     - add the fdda_scheme variable definition
         (line 88)
-            character(len=StrKIND),pointer:: fdda_scheme
+            character(len=StrKIND),pointer:: config_fdda_scheme
         (line 107)
-             call mpas_pool_get_config(configs,'config_fdda_scheme',fdda_scheme)
+             call mpas_pool_get_config(configs,'config_fdda_scheme',config_fdda_scheme)
+
+    - change fdda_scheme to config_fdda_scheme (line 161)
+
+         fdda_select: select case(config_fdda_scheme)
 
     - change write(0,*) MESSAGE to call mpas_log_write(MESSAGE)
 
     - add mpas timer start and stop for FDDA
+
+* mpas_atmphys_packages.F
+
+    Initialize the package fdda
+
+    - line 39
+        character(len=StrKIND),pointer:: config_fdda_scheme
+
+    - line 43
+         logical,pointer:: fdda_in
+
+    - 167-190
+
+         !--- initialization of all packages for analysis nudging:
+
+         call mpas_pool_get_config(configs,'config_fdda_scheme',config_fdda_scheme)
+
+         nullify(fdda_in)
+         call mpas_pool_get_package(packages,'fdda_in',fdda_in)
+
+         if(.not.associated(fdda_in)) then
+            call mpas_log_write('====================================================================================',messageType=MPAS_LOG_ERR)
+            call mpas_log_write('* Error while setting up packages for analysis nudging.',  messageType=MPAS_LOG_ERR)
+            call mpas_log_write('====================================================================================',messageType=MPAS_LOG_ERR)
+            ierr = 1
+            return
+         endif
+
+         fdda_in = .false.
+
+         if(config_fdda_scheme=='scaled') then
+            fdda_in = .true.
+         elseif(config_fdda_scheme == 'analysis') then
+            fdda_in = .true.
+         endif
+
+         call mpas_log_write('    fdda_in                 = $l', logicArgs=(/fdda_in/))
+         call mpas_log_write('')
+

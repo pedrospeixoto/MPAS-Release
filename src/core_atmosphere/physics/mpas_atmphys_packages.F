@@ -36,9 +36,11 @@
  character(len=StrKIND),pointer:: config_microp_scheme
  character(len=StrKIND),pointer:: config_convection_scheme
  character(len=StrKIND),pointer:: config_pbl_scheme
+ character(len=StrKIND),pointer:: config_fdda_scheme
  logical,pointer:: mp_kessler_in,mp_thompson_in,mp_wsm6_in
  logical,pointer:: cu_grell_freitas_in,cu_kain_fritsch_in,cu_tiedtke_in
  logical,pointer:: bl_mynn_in,bl_ysu_in
+ logical,pointer:: fdda_in
 
  integer :: ierr
 
@@ -160,6 +162,32 @@
 
  call mpas_log_write('    bl_mynn_in              = $l', logicArgs=(/bl_mynn_in/))
  call mpas_log_write('    bl_ysu_in               = $l', logicArgs=(/bl_ysu_in/))
+ call mpas_log_write('')
+
+!--- initialization of all packages for analysis nudging:
+
+ call mpas_pool_get_config(configs,'config_fdda_scheme',config_fdda_scheme)
+
+ nullify(fdda_in)
+ call mpas_pool_get_package(packages,'fdda_in',fdda_in)
+
+ if(.not.associated(fdda_in)) then
+    call mpas_log_write('====================================================================================',messageType=MPAS_LOG_ERR)
+    call mpas_log_write('* Error while setting up packages for analysis nudging.',  messageType=MPAS_LOG_ERR)
+    call mpas_log_write('====================================================================================',messageType=MPAS_LOG_ERR)
+    ierr = 1
+    return
+ endif
+
+ fdda_in = .false.
+
+ if(config_fdda_scheme == 'scaled') then
+    fdda_in = .true.
+ elseif(config_fdda_scheme == 'analysis') then
+    fdda_in = .true.
+ endif
+
+ call mpas_log_write('    fdda_in                 = $l', logicArgs=(/fdda_in/))
  call mpas_log_write('')
 
  end function atmphys_setup_packages
