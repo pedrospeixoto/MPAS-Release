@@ -2977,9 +2977,7 @@
                      description="tendency of meridional wind due to fdda"
                      packages="fdda_in"/>
 
-				<var name="rufddaten_Edge"    type="real"     dimensions="nVertLevels nEdges Time" units="m s^{-1} s^{-1}"
-					 description="tendency of wind in edges due to fdda"
-                     packages="fdda_in"/>
+				<var name="rufddaten_Edge" type="real" dimensions="nVertLevels nEdges Time"/>
 
                 <!-- ================================================================================================== -->
                 <!-- TENDENCIES FROM PARAMETERIZATION OF CONVECTION:                                                    -->
@@ -3028,10 +3026,8 @@
                      description="tendency of meridional wind due to cumulus convection"
                      packages="cu_grell_freitas_in;cu_tiedtke_in"/>
 
-	        <!-- MGD should we add packages to the field below? -->
-	        <var name="rucuten_Edge" type="real"     dimensions="nVertLevels nEdges Time" units="m s^{-1} s^{-1}"
-					 description="tendency of wind in edges due to cumulus convection"
-                     packages="cu_grell_freitas_in;cu_tiedtke_in"/>
+	        	<!-- MGD should we add packages to the field below? -->
+	        	<var name="rucuten_Edge" type="real" dimensions="nVertLevels nEdges Time"/>
 
 
                 <!-- ================================================================================================== -->
@@ -3066,10 +3062,8 @@
                      description="tendency of cloud ice number concentration due to pbl processes"
                      packages="bl_mynn_in"/>
 
-	        <!-- MGD should we add packages to the field below? -->
-	        <var name="rublten_Edge" type="real"     dimensions="nVertLevels nEdges Time" units="m s^{-1} s^{-1}"
-					 description="tendency of wind in edges due to pbl processes"
-                     packages="bl_mynn_in;bl_ysu_in"/>
+	        	<!-- MGD should we add packages to the field below? -->
+	        	<var name="rublten_Edge" type="real" dimensions="nVertLevels nEdges Time"/>
 
 
                 <!-- ================================================================================================== -->
