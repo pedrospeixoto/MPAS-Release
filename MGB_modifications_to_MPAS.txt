@@ -452,7 +452,7 @@ NOT CHANGED * mpas_atm_time_integration.F
          call physics_get_tend_work(block, mesh, nCells, nEdges, nCellsSolve, nEdgesSolve, &
                                rk_step, dynamics_substep, &
                                config_pbl_scheme, config_convection_scheme, config_radt_lw_scheme, config_radt_sw_scheme, &
-                               config_fdda_scheme, rthfddaten, rqvfddaten, rufddaten, rvfddaten, &
+                               config_fdda_scheme, rthfddaten, rqvfddaten, rufddaten, rvfddaten, rufddaten_Edge, &
                                ...
 
     - clean the allocated vars before physics_get_tend_work (257-260)
@@ -467,7 +467,7 @@ NOT CHANGED * mpas_atm_time_integration.F
             subroutine physics_get_tend_work(block, mesh, nCells, nEdges, nCellsSolve, nEdgesSolve, &
                                  rk_step, dynamics_substep, &
                                  config_pbl_scheme, config_convection_scheme, config_radt_lw_scheme, config_radt_sw_scheme, &
-                                 config_fdda_scheme, rthfddaten, rqvfddaten, rufddaten, rvfddaten, &
+                                 config_fdda_scheme, rthfddaten, rqvfddaten, rufddaten, rvfddaten, rufddaten_Edge, &
                                  ...
         -  add definitions
 

@@ -220,7 +220,7 @@
  call physics_get_tend_work(block, mesh, nCells, nEdges, nCellsSolve, nEdgesSolve, &
                            rk_step, dynamics_substep, &
                            config_pbl_scheme, config_convection_scheme, config_radt_lw_scheme, config_radt_sw_scheme, &
-                           config_fdda_scheme, rthfddaten, rqvfddaten, rufddaten, rvfddaten, &
+                           config_fdda_scheme, rthfddaten, rqvfddaten, rufddaten, rvfddaten, rufddaten_Edge, &
                            index_qv, index_qc, index_qr, index_qi, index_qs, index_ni, &
                            rublten, rvblten, mass_edge, rublten_Edge, &
                            tend_ru_physics, &
@@ -283,7 +283,7 @@
  subroutine physics_get_tend_work(block, mesh, nCells, nEdges, nCellsSolve, nEdgesSolve, &
                                  rk_step, dynamics_substep, &
                                  config_pbl_scheme, config_convection_scheme, config_radt_lw_scheme, config_radt_sw_scheme, &
-                                 config_fdda_scheme, rthfddaten, rqvfddaten, rufddaten, rvfddaten, &
+                                 config_fdda_scheme, rthfddaten, rqvfddaten, rufddaten, rvfddaten, rufddaten_Edge, &
                                  index_qv, index_qc, index_qr, index_qi, index_qs, index_ni, &
                                  rublten, rvblten, mass_edge, rublten_Edge, tend_u, &
                                  rucuten, rvcuten, rucuten_Edge, &
@@ -312,6 +312,7 @@
     real (kind=RKIND), dimension(nVertLevels,nCells+1), intent(in) :: rqvfddaten
     real (kind=RKIND), dimension(nVertLevels,nCells+1), intent(in) :: rufddaten
     real (kind=RKIND), dimension(nVertLevels,nCells+1), intent(in) :: rvfddaten
+    real (kind=RKIND), dimension(nVertLevels,nEdges+1), intent(inout) :: rufddaten_Edge
     integer, intent(in) :: index_qv, index_qc, index_qr, index_qi, index_qs, index_ni
     real (kind=RKIND), dimension(nVertLevels,nCells+1), intent(in) :: rublten
     real (kind=RKIND), dimension(nVertLevels,nCells+1), intent(in) :: rvblten
