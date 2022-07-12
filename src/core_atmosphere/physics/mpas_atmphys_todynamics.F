@@ -168,6 +168,7 @@
  call mpas_pool_get_array(tend_physics, 'rvfddaten', rvfddaten)
  call mpas_pool_get_array(tend_physics, 'rthfddaten', rthfddaten)
  call mpas_pool_get_array(tend_physics, 'rqvfddaten', rqvfddaten)
+ call mpas_pool_get_array(tend_physics, 'rufddaten_Edge', rufddaten_Edge)
 
  call mpas_pool_get_array(tend_physics, 'rthratenlw', rthratenlw)
  call mpas_pool_get_array(tend_physics, 'rthratensw', rthratensw)
@@ -211,10 +212,15 @@
  if (.not. associated(rqvcuten)) allocate(rqvcuten(0,0))
  if (.not. associated(rqccuten)) allocate(rqccuten(0,0))
  if (.not. associated(rqicuten)) allocate(rqicuten(0,0))
+ if (.not. associated(rthfddaten)) allocate(rthfddaten(0,0))
+ if (.not. associated(rqvfddaten)) allocate(rqvfddaten(0,0))
+ if (.not. associated(rufddaten)) allocate(rufddaten(0,0))
+ if (.not. associated(rvfddaten)) allocate(rvfddaten(0,0))
 
  call physics_get_tend_work(block, mesh, nCells, nEdges, nCellsSolve, nEdgesSolve, &
                            rk_step, dynamics_substep, &
                            config_pbl_scheme, config_convection_scheme, config_radt_lw_scheme, config_radt_sw_scheme, &
+                           config_fdda_scheme, rthfddaten, rqvfddaten, rufddaten, rvfddaten, &
                            index_qv, index_qc, index_qr, index_qi, index_qs, index_ni, &
                            rublten, rvblten, mass_edge, rublten_Edge, &
                            tend_ru_physics, &
@@ -248,6 +254,10 @@
  if (size(rqvcuten) == 0) deallocate(rqvcuten)
  if (size(rqccuten) == 0) deallocate(rqccuten)
  if (size(rqicuten) == 0) deallocate(rqicuten)
+ if (size(rthfddaten) == 0) deallocate(rthfddaten)
+ if (size(rqvfddaten) == 0) deallocate(rqvfddaten)
+ if (size(rufddaten) == 0) deallocate(rufddaten)
+ if (size(rvfddaten) == 0) deallocate(rvfddaten)
 
 ! deallocate(theta)
  deallocate(tend_th)
@@ -273,6 +283,7 @@
  subroutine physics_get_tend_work(block, mesh, nCells, nEdges, nCellsSolve, nEdgesSolve, &
                                  rk_step, dynamics_substep, &
                                  config_pbl_scheme, config_convection_scheme, config_radt_lw_scheme, config_radt_sw_scheme, &
+                                 config_fdda_scheme, rthfddaten, rqvfddaten, rufddaten, rvfddaten, &
                                  index_qv, index_qc, index_qr, index_qi, index_qs, index_ni, &
                                  rublten, rvblten, mass_edge, rublten_Edge, tend_u, &
                                  rucuten, rvcuten, rucuten_Edge, &
@@ -296,6 +307,11 @@
     character(len=StrKIND), intent(in) :: config_convection_scheme
     character(len=StrKIND), intent(in) :: config_radt_lw_scheme
     character(len=StrKIND), intent(in) :: config_radt_sw_scheme
+    character(len=StrKIND), intent(in) :: config_fdda_scheme
+    real (kind=RKIND), dimension(nVertLevels,nCells+1), intent(in) :: rthfddaten
+    real (kind=RKIND), dimension(nVertLevels,nCells+1), intent(in) :: rqvfddaten
+    real (kind=RKIND), dimension(nVertLevels,nCells+1), intent(in) :: rufddaten
+    real (kind=RKIND), dimension(nVertLevels,nCells+1), intent(in) :: rvfddaten
     integer, intent(in) :: index_qv, index_qc, index_qr, index_qi, index_qs, index_ni
     real (kind=RKIND), dimension(nVertLevels,nCells+1), intent(in) :: rublten
     real (kind=RKIND), dimension(nVertLevels,nCells+1), intent(in) :: rvblten

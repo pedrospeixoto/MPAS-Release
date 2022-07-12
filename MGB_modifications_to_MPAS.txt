@@ -163,6 +163,7 @@ NOT CHANGED * ifort:
 
     - Tendencies 4-d data
 
+        <var_struct name="tend_physics" time_levs="1">
             <!-- ================================================================================================== -->
             <!-- ================================================================================================== -->
             <!-- TENDENCIES FROM FOUR DIMENSIONAL DATA ASSIMILATION:                                                -->
@@ -180,6 +181,21 @@ NOT CHANGED * ifort:
                  description="tendency of meridional wind due to fdda"
                  packages="fdda_in"/>
 
+    - Add _Edge variables for fdda and include packages for other Edge variables in Registry
+
+            <var name="rufddaten_Edge"    type="real"     dimensions="nVertLevels nEdges Time" units="m s^{-1} s^{-1}"
+                 description="tendency of wind in edges due to fdda"
+                 packages="fdda_in"/>
+
+	        <!-- MGD should we add packages to the field below? -->
+	        <var name="rucuten_Edge" type="real"     dimensions="nVertLevels nEdges Time" units="m s^{-1} s^{-1}"
+					 description="tendency of wind in edges due to cumulus convection"
+                     packages="cu_grell_freitas_in;cu_tiedtke_in"/>
+
+	        <!-- MGD should we add packages to the field below? -->
+	        <var name="rublten_Edge" type="real"     dimensions="nVertLevels nEdges Time" units="m s^{-1} s^{-1}"
+					 description="tendency of wind in edges due to pbl processes"
+                     packages="bl_mynn_in;bl_ysu_in"/>
 
 
 --------------------------------------
@@ -416,14 +432,53 @@ NOT CHANGED * mpas_atm_time_integration.F
 
         call mpas_pool_get_config(configs, 'config_fdda_scheme', config_fdda_scheme)
 
-    - add tend_physics pool array 197-170
+    - add mpas_pool_get_array for fdda vars (167-171)
 
-         call mpas_pool_get_array(tend_physics, 'rufddaten', rufddaten)
-         call mpas_pool_get_array(tend_physics, 'rvfddaten', rvfddaten)
          call mpas_pool_get_array(tend_physics, 'rthfddaten', rthfddaten)
          call mpas_pool_get_array(tend_physics, 'rqvfddaten', rqvfddaten)
+         call mpas_pool_get_array(tend_physics, 'rufddaten', rufddaten)
+         call mpas_pool_get_array(tend_physics, 'rvfddaten', rvfddaten)
+         call mpas_pool_get_array(tend_physics, 'rufddaten_Edge', rufddaten_Edge)
 
-    - add coupled tendencies 214-234
+    - allocate if necessary (220-223)
+
+         if (.not. associated(rthfddaten)) allocate(rthfddaten(0,0))
+         if (.not. associated(rqvfddaten)) allocate(rqvfddaten(0,0))
+         if (.not. associated(rufddaten)) allocate(rufddaten(0,0))
+         if (.not. associated(rvfddaten)) allocate(rvfddaten(0,0))
+
+    - add to physics_get_tend_work (line 223)
+
+         call physics_get_tend_work(block, mesh, nCells, nEdges, nCellsSolve, nEdgesSolve, &
+                               rk_step, dynamics_substep, &
+                               config_pbl_scheme, config_convection_scheme, config_radt_lw_scheme, config_radt_sw_scheme, &
+                               config_fdda_scheme, rthfddaten, rqvfddaten, rufddaten, rvfddaten, &
+                               ...
+
+    - clean the allocated vars before physics_get_tend_work (257-260)
+
+         if (size(rthfddaten) == 0) deallocate(rthfddaten)
+         if (size(rqvfddaten) == 0) deallocate(rqvfddaten)
+         if (size(rufddaten) == 0) deallocate(rufddaten)
+         if (size(rvfddaten) == 0) deallocate(rvfddaten)
+
+    - define subroutine physics_get_tend_work (line 286)
+
+            subroutine physics_get_tend_work(block, mesh, nCells, nEdges, nCellsSolve, nEdgesSolve, &
+                                 rk_step, dynamics_substep, &
+                                 config_pbl_scheme, config_convection_scheme, config_radt_lw_scheme, config_radt_sw_scheme, &
+                                 config_fdda_scheme, rthfddaten, rqvfddaten, rufddaten, rvfddaten, &
+                                 ...
+        -  add definitions
+
+            character(len=StrKIND), intent(in) :: config_fdda_scheme
+            real (kind=RKIND), dimension(nVertLevels,nCells+1), intent(in) :: rthfddaten
+            real (kind=RKIND), dimension(nVertLevels,nCells+1), intent(in) :: rqvfddaten
+            real (kind=RKIND), dimension(nVertLevels,nCells+1), intent(in) :: rufddaten
+            real (kind=RKIND), dimension(nVertLevels,nCells+1), intent(in) :: rvfddaten
+
+
+    - add coupled tendencies 430-447
 
         !add coupled tendencies due to four-dimensional data assimilation (fdda):
         if(config_fdda_scheme .ne. 'off') then
