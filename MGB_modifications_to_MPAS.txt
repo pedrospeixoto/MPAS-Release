@@ -478,11 +478,10 @@ NOT CHANGED * mpas_atm_time_integration.F
             real (kind=RKIND), dimension(nVertLevels,nCells+1), intent(in) :: rvfddaten
 
 
-    - add coupled tendencies 430-447
+    - add coupled tendencies 430-447 (make it similar to version 7 code)
 
         !add coupled tendencies due to four-dimensional data assimilation (fdda):
         if(config_fdda_scheme .ne. 'off') then
-            rufddaten_Edge(:,:) = 0.
             call tend_toEdges(block,mesh,rufddaten,rvfddaten,rufddaten_Edge)
             do i = 1, nEdgesSolve
                 do k  = 1, nVertLevels
@@ -492,7 +491,7 @@ NOT CHANGED * mpas_atm_time_integration.F
             do i = 1, nCellsSolve
                 do k = 1, nVertLevels
                    tend_th(k,i) = tend_th(k,i) + rthfddaten(k,i)*mass(k,i)
-                   tend_qv(k,i) = tend_qv(k,i) + rqvfddaten(k,i)*mass(k,i)
+                   tend_scalars(index_qv,k,i) = tend_scalars(index_qv,k,i) + rqvfddaten(k,i)*mass(k,i)
                 enddo
             enddo
         endif

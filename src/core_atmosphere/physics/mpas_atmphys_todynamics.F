@@ -429,7 +429,6 @@
 
     !add coupled tendencies due to four-dimensional data assimilation (fdda):
     if(config_fdda_scheme .ne. 'off') then
-        rufddaten_Edge(:,:) = 0
         call tend_toEdges(block,mesh,rufddaten,rvfddaten,rufddaten_Edge)
         do i = 1, nEdgesSolve
             do k  = 1, nVertLevels
@@ -439,7 +438,7 @@
         do i = 1, nCellsSolve
             do k = 1, nVertLevels
                tend_th(k,i) = tend_th(k,i) + rthfddaten(k,i)*mass(k,i)
-               tend_qv(k,i) = tend_qv(k,i) + rqvfddaten(k,i)*mass(k,i)
+               tend_scalars(index_qv,k,i) = tend_scalars(index_qv,k,i) + rqvfddaten(k,i)*mass(k,i)
             enddo
         enddo
     endif
