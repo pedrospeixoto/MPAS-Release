@@ -409,8 +409,8 @@ NOT CHANGED * mpas_atm_time_integration.F
     - line 99
          real(kind=RKIND),dimension(:,:),pointer:: rthfddaten,rqvfddaten,rufddaten,rvfddaten
 
-    - add rufddaten_Edge to pointer list in line 110
-        real(kind=RKIND),dimension(:,:),pointer:: rublten_Edge,rucuten_Edge,rufddaten_Edge
+    - add rufddaten_Edge to allocatable list in line 110
+        real(kind=RKIND),dimension(:,:),allocatable:: rublten_Edge,rucuten_Edge,rufddaten_Edge
 
     - add mpas_pool_get_config (line 126)
 

@@ -108,7 +108,7 @@
  real(kind=RKIND):: coeff
 
  real(kind=RKIND):: tem
- real(kind=RKIND),dimension(:,:),pointer:: rublten_Edge,rucuten_Edge,rufddaten_Edge
+ real(kind=RKIND),dimension(:,:),allocatable:: rublten_Edge,rucuten_Edge,rufddaten_Edge
 
  real(kind=RKIND),dimension(:,:),allocatable:: theta,tend_th
 
