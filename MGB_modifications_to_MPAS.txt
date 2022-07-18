@@ -42,6 +42,26 @@ NOT CHANGED * ifort:
 
 
 --------------------------------------
+        INIT_ATMOSPHERE_MODEL: Registry.xml
+--------------------------------------
+
+    - Add wind variables in the init.nc creation (line 574-575)
+
+            <stream name="output"
+                    type="output"
+                    filename_template="x1.40962.init.nc"
+                    output_interval="initial_only"
+                    packages="initial_conds"
+                    immutable="true">
+
+                    <var name="initial_time" packages="met_stage_out"/>
+                    ...
+                    <var name="uReconstructZonal" packages="met_stage_out"/>
+                    <var name="uReconstructMeridional" packages="met_stage_out"/>
+                    ...
+
+
+--------------------------------------
         ATMOSPHERE_MODEL: Registry.xml
 --------------------------------------
 

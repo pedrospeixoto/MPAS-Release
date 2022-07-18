@@ -571,6 +571,8 @@
                         <var name="q2" packages="met_stage_out"/>
                         <var name="rh2" packages="met_stage_out"/>
                         <var name="t2m" packages="met_stage_out"/>
+                        <var name="uReconstructZonal" packages="met_stage_out"/>
+                        <var name="uReconstructMeridional" packages="met_stage_out"/>
 		</stream>
 
 		<stream name="surface" 
