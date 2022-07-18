@@ -169,7 +169,7 @@
  call mpas_pool_get_config(configs,'config_fdda_scheme',config_fdda_scheme)
 
  nullify(fdda_in)
- call mpas_pool_get_package(packages,'fdda_in',fdda_in)
+ call mpas_pool_get_package(packages,'fdda_inActive',fdda_in)
 
  if(.not.associated(fdda_in)) then
     call mpas_log_write('====================================================================================',messageType=MPAS_LOG_ERR)
