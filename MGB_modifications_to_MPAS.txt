@@ -45,7 +45,9 @@ NOT CHANGED * ifort:
         INIT_ATMOSPHERE_MODEL: Registry.xml
 --------------------------------------
 
-    - Add wind variables in the init.nc creation (line 574-575)
+    - Add wind variables and pressure in the init.nc creation (line 574-575)
+        This is needed so that we can generate the fdda files from
+        era5 input in a way that can be used in atmosphere code.
 
             <stream name="output"
                     type="output"
@@ -58,6 +60,7 @@ NOT CHANGED * ifort:
                     ...
                     <var name="uReconstructZonal" packages="met_stage_out"/>
                     <var name="uReconstructMeridional" packages="met_stage_out"/>
+                    <var name="pressure" packages="met_stage_out"/>
                     ...
 
 
