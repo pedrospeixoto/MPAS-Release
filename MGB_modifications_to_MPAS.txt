@@ -27,9 +27,9 @@
 ! Marta Gil Bardaji DISCLAIMER:
 !   This is a very first version of the code. It compiles and
 !   runs in my system (namelist config_fdda_scheme='analysis', regional MPAS,
-!   only one CORE) but has not been tested in general envirnoments.
+!   only one CORE) but has not been tested in general environments.
 !   I was neither familiar with Fortran nor MPAS code before doing this,
-!   so I expect many errors to be found. The idea is that comeone that knows
+!   so I expect many errors to be found. The idea is that someone that knows
 !   more than I do can do their job more easily having these notes as reference.
 !
 !   Contact: marta.gil@vortexfdc.com
