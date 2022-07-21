@@ -16,7 +16,7 @@
 !   (see PXT_modifications_to_MPAS.txt)
 !
 !
-!   As of July 21st 2022 the changes can be seen by comparing github branches:
+!   As of July 21st 2022 the changes can be seen by comparing GitHub branches:
 !
 !       https://github.com/marta-gil/MPAS-PXT-MGB/compare/master...marta-gil:MPAS-PXT-MGB:mpas-nudging
 !
@@ -25,14 +25,14 @@
 !
 !
 ! Marta Gil Bardaji DISCLAIMER:
-! This is a very first version of the code. It compiles and
-! runs in my system (namelist config_fdda_scheme='analysis', regional MPAS,
-! only one CORE) but has not been tested in general envirnoments.
-! I was neither familiar with Fortran nor MPAS code before doing this,
-! so I expect many errors to be found. The idea is that comeone that knows
-! more than I do can do their job more easily having these notes as reference.
+!   This is a very first version of the code. It compiles and
+!   runs in my system (namelist config_fdda_scheme='analysis', regional MPAS,
+!   only one CORE) but has not been tested in general envirnoments.
+!   I was neither familiar with Fortran nor MPAS code before doing this,
+!   so I expect many errors to be found. The idea is that comeone that knows
+!   more than I do can do their job more easily having these notes as reference.
 !
-! Contact: marta.gil@vortexfdc.com
+!   Contact: marta.gil@vortexfdc.com
 
 ###################
 ##### SUMMARY #####
