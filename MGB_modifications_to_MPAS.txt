@@ -3,7 +3,8 @@
 !   Date: July 2022
 !
 !   Features:
-!   - Add analysis nudging FDDA
+!   - Add an fdda (four-dimensional data assimilation) scheme of analysis
+!     nudging, based on the implementation for MPAS v4 described in:
 !       https://gmd.copernicus.org/articles/11/2897/2018/
 !       Bullock Jr., O. R., Foroutan, H., Gilliam, R. C., and Herwehe, J. A.:
 !       Adding four-dimensional data assimilation by analysis nudging to
@@ -11,43 +12,71 @@
 !       Geosci. Model Dev., 11, 2897–2922,
 !       https://doi.org/10.5194/gmd-11-2897-2018, 2018.
 !
-!
-!   All Modifications where marked with MGB text and a comment
-!   All things that would be moved/removed was commented
-
 !   Based on MPAS version 7.2 (Feb 2022), with PXT modifications
 !   (see PXT_modifications_to_MPAS.txt)
+!
+!
+!   As of July 21st 2022 the changes can be seen by comparing github branches:
+!
+!       https://github.com/marta-gil/MPAS-PXT-MGB/compare/master...marta-gil:MPAS-PXT-MGB:mpas-nudging
+!
+!   which will compare the branch that has nudging (marta-gil:MPAS-PXT-MGB:mpas-nudging)
+!   with the reference branch
+!
+!
+! Marta Gil Bardaji DISCLAIMER:
+! This is a very first version of the code. It compiles and
+! runs in my system (namelist config_fdda_scheme='analysis', regional MPAS,
+! only one CORE) but has not been tested in general envirnoments.
+! I was neither familiar with Fortran nor MPAS code before doing this,
+! so I expect many errors to be found. The idea is that comeone that knows
+! more than I do can do their job more easily having these notes as reference.
+!
+! Contact: marta.gil@vortexfdc.com
 
+###################
+##### SUMMARY #####
 
-----------------------------------
-        Makefile
-----------------------------------
-NOT CHANGED * ifort:
+Cores changed:
 
-    Originally we have
-    ifort:
-        ( $(MAKE) all \
-        "FC_PARALLEL = mpif90" \
-        "CC_PARALLEL = mpicc" \
-        "CXX_PARALLEL = mpicxx" \
+    * init_atmosphere
 
-    In the Nugging version the suggested modification is:
-    ifort:
-        ( $(MAKE) all \
-        "FC_PARALLEL = mpiifort" \
-        "CC_PARALLEL = mpiicc" \
-        "CXX_PARALLEL = mpiicpc" \
-    We didn't CHANGE THIS (as of yet), because I don't understand
-    why would we need to.
+        - Modify the Registry file so that extra variables are included
+          in init.nc files
+
+    * atmosphere
+
+        - Modify the Registry file
+            Add package "fdda_in", add stream "fdda", add var_struct "fdda_in",
+            add variables to the restart files, add config options for the
+            namelist, add variables to the "tend_physics" structure.
+        - Update Makefile
+        - Add the mpas_atmphys_fdda.F file
+        - Update the control, driver, manager, packages, to_dynamics files
+
+This is surely not fully version 7 compliant: I did neither add a
+mpas_atmphys_driver_fdda file nor added information on the
+mpas_atmphys_vars. My guess is that most of that logic must be
+already included in mpas_atmphys_fdda.F.
+
 
 
 --------------------------------------
-        INIT_ATMOSPHERE_MODEL: Registry.xml
+        INIT_ATMOSPHERE_MODEL
 --------------------------------------
+
+1. Registry.xml
 
     - Add wind variables and pressure in the init.nc creation (line 574-575)
+
         This is needed so that we can generate the fdda files from
-        era5 input in a way that can be used in atmosphere code.
+        era5 input in a way that they include variables 'uReconstructZonal'
+        and 'uReconstructMeridional' (that are used in fdda).
+
+        In my case, I also added the 'pressure' variable on the init.nc
+        files because it is useful for me in the post-processing of the
+        fdda files for external analysis in order to obtain the temperature
+        from the potential temperature. This addition is not essential.
 
             <stream name="output"
                     type="output"
@@ -68,27 +97,48 @@ NOT CHANGED * ifort:
         ATMOSPHERE_MODEL: Registry.xml
 --------------------------------------
 
+## 1. Registry.xml
+
     - Add "fdda_in" to the packages list (line 386)
+        I called it 'Analysis Nudging' but it
+        could be renamed to something more general if other kind of
+        fdda (spectral, observations) plan to be implemented.
 
             <package name="fdda_in" description="Analysis nudging"/>
 
-    - Add tendency values 804-815
+    - Add fdda values in the restart files (lines 804-815)
 
-        <var name="rthfddaten"/>
-        <var name="rqvfddaten"/>
-        <var name="rufddaten"/>
-        <var name="rvfddaten"/>
-        <var name="th_fdda_old"/>
-        <var name="qv_fdda_old"/>
-        <var name="u_fdda_old"/>
-        <var name="v_fdda_old"/>
-        <var name="th_fdda_new"/>
-        <var name="qv_fdda_new"/>
-        <var name="u_fdda_new"/>
-        <var name="v_fdda_new"/>
+        <stream name="restart"
+                        type="input;output"
+                        filename_template="restart.$Y-$M-$D_$h.$m.$s.nc"
+                        input_interval="initial_only"
+                        output_interval="1_00:00:00"
+                        immutable="true">
+            ...
+            <var name="rthfddaten"/>
+            <var name="rqvfddaten"/>
+            <var name="rufddaten"/>
+            <var name="rvfddaten"/>
+            <var name="th_fdda_old"/>
+            <var name="qv_fdda_old"/>
+            <var name="u_fdda_old"/>
+            <var name="v_fdda_old"/>
+            <var name="th_fdda_new"/>
+            <var name="qv_fdda_new"/>
+            <var name="u_fdda_new"/>
+            <var name="v_fdda_new"/>
+            ...
 
-
-    - stream fdda
+    - Add a stream called fdda (lines 864-874)
+        The input files for fdda are expected to have their variables
+        named in this specific way. Therefore, the output variables from
+        the init_atmosphere output will have to be renamed
+        {
+        'qv': 'qv_fdda_new',
+        'theta': 'th_fdda_new',
+        'uReconstructZonal': 'u_fdda_new',
+        'uReconstructMeridional': 'v_fdda_new',
+        }
 
         <stream name="fdda"
                 type="input"
@@ -101,7 +151,20 @@ NOT CHANGED * ifort:
                 <var name="v_fdda_new"/>
         </stream>
 
-    - var struct fdda
+        NOTE: I left the stream definition as it was in the version 4 code
+        by default. However, when I have run the cases, I have used separate
+        fdda files for each timestamp. In particular, I run init_atmosphere
+        for each timestamp to get a 'init.nc' file, and then I store only the
+        variables needed for fdda renamed to their expected names. Then, the
+        streams.atmosphere file for my case (hourly fdda) looks like:
+
+            <immutable_stream name="fdda"
+                      type="input"
+                      filename_template="fdda.$Y-$M-$D_$h.nc"
+                      filename_interval="input_interval"
+                      input_interval="1:00:00" />
+
+    - Add var_struct called fdda (lines 1529-1539)
 
         <var_struct name="fdda" time_levs="1" packages="fdda_in">
                 <var name="qv_fdda_new"  type="real"  dimensions="nVertLevels nCells Time"/>
@@ -115,12 +178,15 @@ NOT CHANGED * ifort:
         </var_struct>
 
 
-    - Add config options. In v7 you need units, description and possible values.
-    I put the values to the best of my knowledge, adding (?) to places I thought
-    I could check better
+    - Add config options for the namelist (lines 2020 - 2084)
+        In v7 you need units, description and possible values.
 
-            <nml_option name="config_fdda_scheme"                type="character"     default_value="off"        in_defaults="false"
-                 units="-"
+        NOTE: This needs revision. I put the values to the best of my knowledge,
+        adding (?) to places I wasn't completely sure (in many cases, those
+        are scaled nudging options, which is implemented but not fully explained
+        in the reference code for MPAS v4 I am looking at)
+
+            <nml_option name="config_fdda_scheme"                type="character"     default_value="off"        in_defaults="false" units="-"
                  description="configuration for nudging: scaled / analysis / off"
                  possible_values="`scaled',`analysis',`off'"/>
             <nml_option name="config_fdda_int"                   type="real"          default_value="21600."     in_defaults="false"
@@ -184,7 +250,7 @@ NOT CHANGED * ifort:
                  description="config_fdda_uv_min_layer"
                  possible_values="Positive integers (?)"/>
 
-    - Tendencies 4-d data
+    - In "tend_physics" add tendencies for the 4 variables (lines 2962 - 2978)
 
         <var_struct name="tend_physics" time_levs="1">
             <!-- ================================================================================================== -->
@@ -204,89 +270,40 @@ NOT CHANGED * ifort:
                  description="tendency of meridional wind due to fdda"
                  packages="fdda_in"/>
 
-    - Add _Edge variables for fdda and include packages for other Edge variables in Registry
+    - In "tend_physics", add _Edge variables for fdda and include packages for other Edge
+    variables in Registry (lines 2980-2983, 3031-3034, 3069-72)
+        The _Edge tendencies not needed in v4, but it I added it in v7
+        analogously for other physics parametrizations.
 
             <var name="rufddaten_Edge"    type="real"     dimensions="nVertLevels nEdges Time" units="m s^{-1} s^{-1}"
                  description="tendency of wind in edges due to fdda"
                  packages="fdda_in"/>
 
-	        <!-- MGD should we add packages to the field below? -->
-	        <var name="rucuten_Edge" type="real"     dimensions="nVertLevels nEdges Time" units="m s^{-1} s^{-1}"
-					 description="tendency of wind in edges due to cumulus convection"
+            <!-- MGD should we add packages to the field below? -->
+            <var name="rucuten_Edge" type="real"     dimensions="nVertLevels nEdges Time" units="m s^{-1} s^{-1}"
+                     description="tendency of wind in edges due to cumulus convection"
                      packages="cu_grell_freitas_in;cu_tiedtke_in"/>
 
-	        <!-- MGD should we add packages to the field below? -->
-	        <var name="rublten_Edge" type="real"     dimensions="nVertLevels nEdges Time" units="m s^{-1} s^{-1}"
-					 description="tendency of wind in edges due to pbl processes"
+            <!-- MGD should we add packages to the field below? -->
+            <var name="rublten_Edge" type="real"     dimensions="nVertLevels nEdges Time" units="m s^{-1} s^{-1}"
+                     description="tendency of wind in edges due to pbl processes"
                      packages="bl_mynn_in;bl_ysu_in"/>
 
 
---------------------------------------
-        ATMOSPHERE_MODEL: dynamics
---------------------------------------
+## 2. physics' Makefile:
 
-NOT CHANGED * mpas_atm_time_integration.F
-
-    Modification wrt version 4:
-    This modified version calculates total moist air mass and total
-    water vapor mass at every time step and writes them to Fortran
-    units 30 and 40, respectively.
-
-    I think this is for testing purposes. We didn't CHANGE THIS (as of yet)
-
-    line 161:
-        ! mass conservation test --- Hosein Foroutan, March 2016
-        real (kind=RKIND), dimension(:,:), pointer :: zgrid
-        real (kind=RKIND), dimension(:), pointer :: areaCell
-        real (kind=RKIND) :: mass_air, mass_qv, par_volume
-        real (kind=RKIND) :: global_mass_air, global_mass_qv, global_volume
-        real (kind=RKIND), dimension(:,:), pointer :: rho_zz
-
-    line 680:
-        !----- mass conservation test --- Hosein Foroutan, March 2016
-        block => domain % blocklist
-        do while (associated(block))
-            call mpas_pool_get_subpool(block % structs, 'state', state)
-            call mpas_pool_get_subpool(block % structs, 'mesh', mesh)
-            call mpas_pool_get_array(state, 'scalars', scalars, 2)
-            call mpas_pool_get_dimension(state, 'nCellsSolve', nCellsSolve)
-            call mpas_pool_get_array(state, 'rho_zz', rho_zz, 2)
-            call mpas_pool_get_dimension(state, 'nVertLevels', nVertLevels)
-            call mpas_pool_get_dimension(state, 'num_scalars', num_scalars)
-            call mpas_pool_get_array(mesh, 'zgrid', zgrid)
-            call mpas_pool_get_array(mesh, 'areaCell', areaCell)
-            mass_air   = 0.0
-            mass_qv    = 0.0
-            par_volume = 0.0
-               do iCell = 1, nCellsSolve
-               do k = 1, nVertLevels
-                  mass_air   = mass_air   + rho_zz(k,iCell) * areaCell(iCell) * (zgrid(k+1,iCell) - zgrid(k,iCell))
-                  mass_qv    = mass_qv    + rho_zz(k,iCell) * scalars(1,k,iCell) * areaCell(iCell) * (zgrid(k+1, iCell) - zgrid(k,iCell))
-                  par_volume = par_volume + areaCell(iCell) * (zgrid(k+1, iCell) - zgrid(k,iCell))
-               end do
-               end do
-            call mpas_dmpar_sum_real(domain % dminfo, mass_air   , global_mass_air )
-            call mpas_dmpar_sum_real(domain % dminfo, mass_qv    , global_mass_qv  )
-            call mpas_dmpar_sum_real(domain % dminfo, par_volume , global_volume   )
-            write(30,*) global_mass_air
-            write(40,*) global_mass_qv
-            block => block % next
-        end do
-
-
---------------------------------------
-        ATMOSPHERE_MODEL: physics
---------------------------------------
-
-* Makefile:
-
-    Added mpas_atmphys_fdda to the needed places
+    - Added mpas_atmphys_fdda to the needed places (line 24, 76, 98-102)
 
         OBJS = \
+            ...
             mpas_atmphys_fdda.o                \
+            ...
+
 
         mpas_atmphys_driver.o: \
+            ...
             mpas_atmphys_fdda.o \
+            ...
 
         mpas_atmphys_fdda.o: \
             mpas_atmphys_constants.o \
@@ -294,16 +311,35 @@ NOT CHANGED * mpas_atm_time_integration.F
             mpas_atmphys_vars.o \
 
 
-* mpas_atmphys_vars.F
+## 3. Main routine: mpas_atmphys_fdda.F
 
-    * add comment 113-115
+    I have used as reference the file designed for version 4 and
+    made changes to adapt to version 7 based on analogy with the differences
+    between version 4 and 7 for other packages.
 
-        ! * added four-dimensional data assimilate arrays and control variables
-        !   Marta Gil Bardaji (marta.gil@vortexfdc.com) / 2022-07-05
-        !   Basen on v4 from O. Russell Bullock Jr. (bullock.russell@epa.gov) / 2016-03-21.
+    - remove  use mpas_derived_types form line 4 and add some other imports:
 
-    * We don't have to initialize fdd_scheme, we can use config_fdda_scheme
+         module mpas_atmphys_fdda
+         use mpas_kind_types
+         use mpas_pool_routines
+         use mpas_timer, only : mpas_timer_start, mpas_timer_stop
 
+    - add the fdda_scheme variable definition
+        (line 88)
+            character(len=StrKIND),pointer:: config_fdda_scheme
+        (line 107)
+             call mpas_pool_get_config(configs,'config_fdda_scheme',config_fdda_scheme)
+
+    - change fdda_scheme to config_fdda_scheme (line 161)
+
+         fdda_select: select case(config_fdda_scheme)
+
+    - change write(0,*) MESSAGE to call mpas_log_write(MESSAGE)
+
+    - add mpas timer start and stop for FDDA
+
+
+## 4. Update other mpas_atmphys files
 
 * mpas_atmphys_control.F
 
@@ -324,13 +360,9 @@ NOT CHANGED * mpas_atm_time_integration.F
             call physics_error_fatal(mpas_err_message)
          endif
 
-    - DIFFERENT FROM V4! Add log (line 321)
+    - Add log (line 321)
 
-        In version 4 it was:
-             write(0,*) '    config_fdda_scheme = ', trim(config_fdda_scheme)
-
-        But by comparing the corresponding lines in version 7.2, I assume it would be:
-             call mpas_log_write('    config_fdda_scheme         = '//trim(config_fdda_scheme))
+        call mpas_log_write('    config_fdda_scheme         = '//trim(config_fdda_scheme))
 
 
 * mpas_atmphys_driver.F
@@ -341,11 +373,17 @@ NOT CHANGED * mpas_atm_time_integration.F
     - Add comment line 72
         ! apply_fdda                  : applies four-dimensional data assimilation.
 
-    - Add to local pointers line 122 (mpas_pool_type)
-        fdda,         &
+    - Add to local pointers line 122
+        type(mpas_pool_type),pointer:: configs, &
+                                       ...
+                                       fdda,         &
+                                       ...
 
-    - Add to local pointers line 133 (len=StrKIND)
-        config_fdda_scheme,       &
+    - Add to local pointers line 133
+        character(len=StrKIND),pointer:: config_bucket_update, &
+                                         ...
+                                         config_fdda_scheme,       &
+                                         ...
 
     - Add call line 160
          call mpas_pool_get_config(domain%configs,'config_fdda_scheme'      ,config_fdda_scheme      )
@@ -357,18 +395,20 @@ NOT CHANGED * mpas_atm_time_integration.F
     - Add call in block (line 185)
         call mpas_pool_get_subpool(block%structs,'fdda'        ,fdda        )
 
-    - Apply FDDA! Add in lines (342-348)
+    - Call FDDA. Add in lines (342-348)
 
-            !call to FDDA scheme within MPAS physics (not WRF physics)
-            if(config_fdda_scheme .ne. 'off') then
-               time_lev = 1
-               call apply_fdda(xtime_s,block%configs,mesh,state,time_lev,fdda,diag,diag_physics,tend_physics)
-            endif
+        !call to FDDA scheme within MPAS physics (not WRF physics)
+        if(config_fdda_scheme .ne. 'off') then
+           time_lev = 1
+           do thread=1,nThreads
+                call apply_fdda(xtime_s,block%configs,mesh,state,time_lev,fdda,diag,diag_physics,tend_physics)
+           end do
+        endif
 
         COMMENT: That is not the structure in version 7.2! So maybe it won't work
-        without adding the parallelization like !$OMP PARALLEL DO
+        in some cases without adding the parallelization like !$OMP PARALLEL DO
 
-        For example, PBL:
+        For example, for the scheme PBL:
 
             v4:
 
@@ -408,36 +448,6 @@ NOT CHANGED * mpas_atm_time_integration.F
 
          call mpas_pool_get_config(configs,'config_fdda_scheme'      ,config_fdda_scheme      )
 
-    - QUESTION!! According to v4 we should add in init local physics variables,
-        but I don't see those lines in the v7.2 file (for any scheme)
-
-        v4:
-
-            !initialization local physics variables:
-             num_months = nMonths
-             num_soils  = nSoilLevels
-
-             convection_scheme = trim(config_convection_scheme)
-             lsm_scheme        = trim(config_lsm_scheme)
-             microp_scheme     = trim(config_microp_scheme)
-             pbl_scheme        = trim(config_pbl_scheme)
-             gwdo_scheme       = trim(config_gwdo_scheme)
-             radt_cld_scheme   = trim(config_radt_cld_scheme)
-             radt_lw_scheme    = trim(config_radt_lw_scheme)
-             radt_sw_scheme    = trim(config_radt_sw_scheme)
-             sfclayer_scheme   = trim(config_sfclayer_scheme)
-
-             if(trim(config_lsm_scheme) .eq. "noah") sf_surface_physics = 2
-
-        v7:
-            !initialization local physics variables:
-             num_months = nMonths
-             num_soils  = nSoilLevels
-
-             if(trim(config_lsm_scheme) .eq. "noah") sf_surface_physics = 2
-
-        Where are they initialized in v7?? Keep an eye on this.
-
 
 * mpas_atmphys_todynamics.F
 
@@ -445,10 +455,10 @@ NOT CHANGED * mpas_atm_time_integration.F
 
         config_fdda_scheme
 
-    - line 99
+    - line 100
          real(kind=RKIND),dimension(:,:),pointer:: rthfddaten,rqvfddaten,rufddaten,rvfddaten
 
-    - add rufddaten_Edge to allocatable list in line 110
+    - add rufddaten_Edge to allocatable list in line 111
         real(kind=RKIND),dimension(:,:),allocatable:: rublten_Edge,rucuten_Edge,rufddaten_Edge
 
     - add mpas_pool_get_config (line 126)
@@ -463,7 +473,7 @@ NOT CHANGED * mpas_atm_time_integration.F
          call mpas_pool_get_array(tend_physics, 'rvfddaten', rvfddaten)
          call mpas_pool_get_array(tend_physics, 'rufddaten_Edge', rufddaten_Edge)
 
-    - allocate if necessary (220-223)
+    - allocate if necessary (215-218)
 
          if (.not. associated(rthfddaten)) allocate(rthfddaten(0,0))
          if (.not. associated(rqvfddaten)) allocate(rqvfddaten(0,0))
@@ -492,7 +502,7 @@ NOT CHANGED * mpas_atm_time_integration.F
                                  config_pbl_scheme, config_convection_scheme, config_radt_lw_scheme, config_radt_sw_scheme, &
                                  config_fdda_scheme, rthfddaten, rqvfddaten, rufddaten, rvfddaten, rufddaten_Edge, &
                                  ...
-        -  add definitions
+    -  add definitions (310-315)
 
             character(len=StrKIND), intent(in) :: config_fdda_scheme
             real (kind=RKIND), dimension(nVertLevels,nCells+1), intent(in) :: rthfddaten
@@ -501,7 +511,9 @@ NOT CHANGED * mpas_atm_time_integration.F
             real (kind=RKIND), dimension(nVertLevels,nCells+1), intent(in) :: rvfddaten
 
 
-    - add coupled tendencies 430-447 (make it similar to version 7 code)
+    - add coupled tendencies 430-447
+        We made some modifications on v4 code make it similar to version 7 code
+        (the tend_scalars call is different for example)
 
         !add coupled tendencies due to four-dimensional data assimilation (fdda):
         if(config_fdda_scheme .ne. 'off') then
@@ -519,37 +531,12 @@ NOT CHANGED * mpas_atm_time_integration.F
             enddo
         endif
 
-
-* mpas_atmphys_fdda.F
-
-    I have kept a mpas_atmphys_fdda.F.v4 to keep the original version
-    of the file designed for version 4 and make changes to adapt to version 7.
-
-
-    - remove  use mpas_derived_types form line 4 and add some other imports:
-
-         module mpas_atmphys_fdda
-         use mpas_kind_types
-         use mpas_pool_routines
-         use mpas_timer, only : mpas_timer_start, mpas_timer_stop
-
-    - add the fdda_scheme variable definition
-        (line 88)
-            character(len=StrKIND),pointer:: config_fdda_scheme
-        (line 107)
-             call mpas_pool_get_config(configs,'config_fdda_scheme',config_fdda_scheme)
-
-    - change fdda_scheme to config_fdda_scheme (line 161)
-
-         fdda_select: select case(config_fdda_scheme)
-
-    - change write(0,*) MESSAGE to call mpas_log_write(MESSAGE)
-
-    - add mpas timer start and stop for FDDA
-
 * mpas_atmphys_packages.F
-
-    Initialize the package fdda
+    NOTE: In this initialization I completely ignore whether
+    config_fdda_scheme=='scaled' or config_fdda_scheme=='analysis'
+    and make both cases set fdda_in=true.
+    Since I have not tested the 'scaled' version (nor I understand it), it
+    has worked fine for my purposes of doing analysis nudging.
 
     - line 39
         character(len=StrKIND),pointer:: config_fdda_scheme

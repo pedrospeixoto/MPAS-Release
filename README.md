@@ -1,5 +1,8 @@
-MPAS-v7.2 + Peixoto Modifications (See PXT_modifications_to_MPAS.txt file)
+MPAS-v7.2 + Peixoto Modifications (See PXT_modifications_to_MPAS.txt file) + NUDGING (See MGB_modifications_to_MPAS.txt)
 ====
+
+*NOTE (21st July 2022): This branch (https://github.com/marta-gil/MPAS-PXT-MGB/tree/mpas-nudging) contains a nudging implementation onto an MPAS-Model fork previously modified by Pedro Peixoto (https://github.com/pedrospeixoto/MPAS-PXT). In ``PXT_modifications_to_MPAS.txt`` there are the changes made by Pedro Peixoto, and in ``MGB_modifications_to_MPAS.txt`` the changes made by Marta Gil-Bardaji to include nudging. Contact person: marta.gil@vortexfdc.com.*
+
 
 The Model for Prediction Across Scales (MPAS) is a collaborative project for
 developing atmosphere, ocean, and other earth-system simulation components for
