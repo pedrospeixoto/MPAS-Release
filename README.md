@@ -1,4 +1,9 @@
-MPAS-v8.0.1
+MPAS-v8.0.1 + Contributions 
+=======
+
+(For contributions, see:
+MPAS_BR_contributions.txt and specific contributions in MPAS-BR-contributions-AUTHOR.md  files)
+
 ====
 
 The Model for Prediction Across Scales (MPAS) is a collaborative project for
