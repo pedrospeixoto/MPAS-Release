@@ -37,8 +37,6 @@ import matplotlib.cm as cm
 import cartopy.crs as ccrs
 from netCDF4 import Dataset
 
-
-
 from tqdm import tqdm
 
 def add_mpas_mesh_variables(ds, full=True, **kwargs):
@@ -196,78 +194,6 @@ def get_vim_vmax(da,clip=False):
             minval = trueminval
 
     return minval, maxval
- 
-def colorvalue(val, da, vmin=None, vmax=None, cmap='Spectral'):
-    """
-    Given a value and the range max, min, it returns the associated
-    color of the desired cmap.
-    :param val: float
-    :param da: xarray data
-    :param vmin: float (default None)
-    :param vmax: float (default None)
-    :param cmap: str
-    :return: cm(norm_val): color
-    """
-    
-    # Get a colormap instance, defaulting to rc values if name is None.
-    cm = mpl.colormaps[cmap] #cm.get_cmap(cmap, None)
-    if vmin is None:
-        vmin = da.min().values #xr.DataArray.min().values  # min value of the array
-    if vmax is None:
-        vmax = da.max().values #xr.DataArray.max().values  # max value of the array
-
-    if vmin == vmax:
-        # A class which, when called, linearly normalizes data into the
-        # [0.0, 1.0] interval.
-        norm_val = mpl.colors.Normalize(vmin=vmin - 1, vmax=vmax + 1, clip=True)(val)
-    else:
-        norm_val = mpl.colors.Normalize(vmin=vmin, vmax=vmax, clip=True)(val)
-        
-    return cm(norm_val)
-
-def plot_cells_mpas(da, ds, ax, plotEdge=True, **plot_kwargs):
-    # da: specific xarray to be plotted (time/level filtered)
-    # ds: general xarray with grid structure, require for grid propreties
-    # plotEdge: wether the cell edge should be visible or not. For high-resolution grids figure looks better if plotEdge=False
-
-    # ax = start_cartopy_map_axis()
-    print("Generating grid plot and plotting variable. This may take a while...")
-    for cell in tqdm(ds['nCells'].values):
-
-        value = da.sel(nCells=cell)
-
-        vertices = ds['verticesOnCell'].sel(nCells=cell).values
-        num_sides = int(ds['nEdgesOnCell'].sel(nCells=cell))
-        
-        if 0 in vertices[:num_sides]:
-            # Border cell
-            continue
-
-        # Cel indexation in MPAS starts in 1 (saved in verticesOnCell), 
-        #  but for indexing in XARRAY starts with 0 (so -1 the indexes)
-        vertices = vertices[:num_sides] - 1
-        
-        lats = ds['latitudeVertex'].sel(nVertices=vertices)
-        lons = ds['longitudeVertex'].sel(nVertices=vertices)
-        
-        #Set color
-        color = colorvalue(value, da, vmin=plot_kwargs['vmin'], vmax=plot_kwargs['vmax'])
-        
-        # Check if there are polygons at the boarder of the map (+/- 180 longitude)
-        # Shift +360 deg the negative longitude
-        if max(lons) > 170 and min(lons) < -170 :
-            lons = xr.where(lons >= 170.0, lons - 360.0, lons)
-
-        if plotEdge:
-            edgecolor = 'grey'
-            lw = 0.1
-        else:
-            edgecolor = None   
-            lw = None
-
-        ax.fill(lons, lats, edgecolor=edgecolor, linewidth=lw, facecolor=color)
-        
-    return
 
 def get_mpas_patches(mesh, type="cell", msh_file="grid.nc", pickleFile=None):
 
@@ -352,26 +278,25 @@ def get_mpas_patches(mesh, type="cell", msh_file="grid.nc", pickleFile=None):
     print("\nCreated a patch file for mesh: ", pickle_file)
     return patch_collection
 
-
-def plot_cells_mpas_v2(mesh, da, ds, ax, plotEdge=True, file='grid.nc', **plot_kwargs):
+def plot_scalar_mpas(mesh, da, ds, ax, plotEdge=True, file='grid.nc', **plot_kwargs):
     # da: specific xarray to be plotted (time/level filtered)
     # ds: general xarray with grid structure, require for grid propreties
     # plotEdge: wether the cell edge should be visible or not. For high-resolution grids figure looks better if plotEdge=False
 
-    patch_collection_cell = get_mpas_patches(mesh, type="cell", msh_file=file, pickleFile=None)
+    if 'nCells' in da.dims: #Plot on Voronoi cells
+        cell_type = "cell"
+
+    elif 'nVertices' in da.dims: #Plot on Triangles
+        cell_type = "dual"
+
+    patch_collection = get_mpas_patches(mesh, type=cell_type, msh_file=file, pickleFile=None)
+
+    cm = mpl.colormaps['Spectral']
 
     print("Creating colormap for variable")
-    #colors = []
-    #for cell in tqdm(ds['nCells'].values):
+    norm_val = mpl.colors.Normalize(vmin=plot_kwargs['vmin'], vmax=plot_kwargs['vmax'], clip=True)(da.values)
+    colors = cm(norm_val)
 
-    #    value = da.sel(nCells=cell)
-
-    #    #Set color
-    #    colors.append( colorvalue(value, da, vmin=plot_kwargs['vmin'], vmax=plot_kwargs['vmax']) )
-
-    #colors = list(map(lambda cell: colorvalue(da.sel(nCells=cell), da, vmin=plot_kwargs['vmin'], vmax=plot_kwargs['vmax']), ds['nCells'].values))
-    colors = [colorvalue(da.sel(nCells=cell), da, vmin=plot_kwargs['vmin'], vmax=plot_kwargs['vmax']) for cell in ds['nCells'].values]
-        
     if plotEdge:
         edgecolor = 'grey'
         lw = 0.1
@@ -379,93 +304,18 @@ def plot_cells_mpas_v2(mesh, da, ds, ax, plotEdge=True, file='grid.nc', **plot_k
         edgecolor = None   
         lw = None
 
-    patch_collection_cell.set_linewidths(lw)
-    patch_collection_cell.set_linestyle("-")
-    patch_collection_cell.set_edgecolors(edgecolor)         # No Edge Colors
-    patch_collection_cell.set_facecolors(colors)
-    patch_collection_cell.set_snap(None)
+    patch_collection.set_linewidths(lw)
+    patch_collection.set_linestyle("-")
+    patch_collection.set_edgecolors(edgecolor)
+    patch_collection.set_facecolors(colors)
+    patch_collection.set_snap(None)
 
     # Now apply the patch_collection to our axis (ie plot it)
     print("Plotting variable")
-    ax.add_collection(patch_collection_cell)
+    ax.add_collection(patch_collection)
     
     return
 
-
-def plot_dual_mpas(da, ds, ax, plotEdge=True, file='grid.nc', **plot_kwargs):
-
-    #Loop over all Voronoi cell vertices - which are triangle circumcentres
-    print("Generating grid plot and plotting variable. This may take a while...")
-    for vertex in tqdm(ds['nVertices'].values):
-
-        #Triangle value
-        value = da.sel(nVertices=vertex)
-
-        #The triangle is formed by connecting 3 cell nodes
-        cells = ds['cellsOnVertex'].sel(nVertices=vertex).values
-        
-        if 0 in cells:
-            # Border triangle
-            continue
-
-        #Indexing given from mpas starts in 1, so adjust to start in 0
-        cells = cells - 1
-        lats = ds['latitude'].sel(nCells=cells)
-        lons = ds['longitude'].sel(nCells=cells)
-        
-        #Set color
-        color = colorvalue(value, da, vmin=plot_kwargs['vmin'], vmax=plot_kwargs['vmax'])
-        
-        # Check if there are polygons at the boarder of the map (+/- 180 longitude)
-        # Shift +360 deg the negative longitude
-        if max(lons) > 170 and min(lons) < -170 :
-            lons = xr.where(lons >= 170.0, lons - 360.0, lons)
-
-        if plotEdge:
-            edgecolor = 'grey'
-            lw = 0.1
-        else:
-            edgecolor = None   
-            lw = None
-
-        # Plot polygons and variable
-        ax.fill(lons, lats, edgecolor=edgecolor, linewidth=lw, facecolor=color)
-    
-    return
-
-def plot_dual_mpas_v2(mesh, da, ds, ax, plotEdge=True, file='grid.nc', **plot_kwargs):
-
-    patch_collection_dual = get_mpas_patches(mesh, type="dual", msh_file=file, pickleFile=None)
-
-    print("Creating colormap for variable")
-    #for vertex in tqdm(ds['nVertices'].values):
-
-    #    #Triangle value
-    #    value = da.sel(nVertices=vertex)
-    #    #Set color
-    #    color = colorvalue(value, da, vmin=plot_kwargs['vmin'], vmax=plot_kwargs['vmax'])
-
-    colors = [colorvalue(da.sel(nVertices=vertex), da, vmin=plot_kwargs['vmin'], vmax=plot_kwargs['vmax']) for vertex in ds['nVertices'].values]
-        
-    if plotEdge:
-        edgecolor = 'grey'
-        lw = 0.1
-    else:
-        edgecolor = None   
-        lw = None
-
-    patch_collection_dual.set_linewidths(lw)
-    patch_collection_dual.set_linestyle("-")
-    patch_collection_dual.set_edgecolors(edgecolor)         # No Edge Colors
-    patch_collection_dual.set_facecolors(colors)
-    patch_collection_dual.set_snap(None)
-
-    print("Plotting variable")
-    # Now apply the patch_collection to our axis (ie plot it)
-    ax.add_collection(patch_collection_dual)
-    
-    return
-        
 def add_colorbar(axs, fig=None, label=None, **plot_kwargs):
     if fig is None:
         fig = plt.gcf()
@@ -550,12 +400,8 @@ def plot_mpas_darray(mesh, ds, vname, time=None, level=None, ax=None, outfile=No
     
     plot_kwargs = set_plot_kwargs(da=da, clip=clip, **kwargs)
     
-    if 'nCells' in da.dims: #Plot on Voronoi cells
-        plot_cells_mpas_v2(mesh, da, ds, ax, plotEdge, **plot_kwargs)
-
-    elif 'nVertices' in da.dims: #Plot on Triangles
-        plot_dual_mpas_v2(mesh, da, ds, ax, plotEdge, **plot_kwargs)
-
+    if 'nCells' in da.dims or 'nVertices' in da.dims: #Plot on Voronoi or dual cells
+        plot_scalar_mpas(mesh, da, ds, ax, plotEdge, **plot_kwargs)
     else: # TO DO: Implement ploting edge quantities
         print('WARNING  Impossible to plot!')
 
@@ -657,10 +503,7 @@ if __name__ == "__main__":
         help="Globe projection to use: 'lonlat', 'robinson' or 'mollweide'",
     )
 
-
-
     args = parser.parse_args()
-    
 
     if not os.path.exists(args.infile):
         raise IOError('File does not exist: ' + args.infile)
