@@ -4634,7 +4634,7 @@ module atm_time_integration
 
       real(kind=RKIND), dimension(:,:), pointer :: tend_w_pgf, tend_w_buoy
 
-      real (kind=RKIND), pointer :: coef_3rd_order, c_s
+      real (kind=RKIND), pointer :: coef_3rd_order, c_s, c_v
       logical, pointer :: config_mix_full
       character (len=StrKIND), pointer :: config_horiz_mixing
       real (kind=RKIND), pointer :: config_del4u_div_factor
@@ -4665,6 +4665,7 @@ module atm_time_integration
       call mpas_pool_get_config(configs, 'config_visc4_2dsmag', config_visc4_2dsmag)
       call mpas_pool_get_config(configs, 'config_len_disp', config_len_disp)
       call mpas_pool_get_config(configs, 'config_smagorinsky_coef', c_s)
+      call mpas_pool_get_config(configs, 'config_vreman_coef', c_v)
       call mpas_pool_get_config(configs, 'config_mpas_cam_coef', config_mpas_cam_coef)
       call mpas_pool_get_config(configs, 'config_rayleigh_damp_u', config_rayleigh_damp_u)
       call mpas_pool_get_config(configs, 'config_rayleigh_damp_u_timescale_days', config_rayleigh_damp_u_timescale_days)
@@ -4787,7 +4788,7 @@ module atm_time_integration
          cellsOnEdge, verticesOnEdge, edgesOnCell, edgesOnEdge, cellsOnCell, edgesOnVertex, nEdgesOnCell, nEdgesOnEdge, &
          latCell, latEdge, angleEdge, u_init, v_init, advCellsForEdge, nAdvCellsForEdge, adv_coefs, adv_coefs_3rd, &
          rdzu, rdzw, fzm, fzp, qv_init, t_init, cf1, cf2, cf3, r_earth, ur_cell, vr_cell, defc_a, defc_b, &
-         tend_w_pgf, tend_w_buoy, coef_3rd_order, c_s, config_mix_full, config_horiz_mixing, config_del4u_div_factor, &
+         tend_w_pgf, tend_w_buoy, coef_3rd_order, c_s, c_v, config_mix_full, config_horiz_mixing, config_del4u_div_factor, &
          config_h_mom_eddy_visc2, config_v_mom_eddy_visc2, config_h_theta_eddy_visc2, config_v_theta_eddy_visc2, &
          config_h_theta_eddy_visc4, config_h_mom_eddy_visc4, config_visc4_2dsmag, config_len_disp, rk_step, dt, &
          config_mpas_cam_coef, &
@@ -4811,7 +4812,7 @@ module atm_time_integration
       cellsOnEdge, verticesOnEdge, edgesOnCell, edgesOnEdge, cellsOnCell, edgesOnVertex, nEdgesOnCell, nEdgesOnEdge, &
       latCell, latEdge, angleEdge, u_init, v_init, advCellsForEdge, nAdvCellsForEdge, adv_coefs, adv_coefs_3rd, &
       rdzu, rdzw, fzm, fzp, qv_init, t_init, cf1, cf2, cf3, r_earth, ur_cell, vr_cell, defc_a, defc_b, &
-      tend_w_pgf, tend_w_buoy, coef_3rd_order, c_s, config_mix_full, config_horiz_mixing, config_del4u_div_factor, &
+      tend_w_pgf, tend_w_buoy, coef_3rd_order, c_s, c_v, config_mix_full, config_horiz_mixing, config_del4u_div_factor, &
       config_h_mom_eddy_visc2, config_v_mom_eddy_visc2, config_h_theta_eddy_visc2, config_v_theta_eddy_visc2, &
       config_h_theta_eddy_visc4, config_h_mom_eddy_visc4, config_visc4_2dsmag, config_len_disp, rk_step, dt, &
       config_mpas_cam_coef, &
@@ -4923,7 +4924,7 @@ module atm_time_integration
       real (kind=RKIND), dimension(nVertLevels+1,nCells+1) :: tend_w_pgf
       real (kind=RKIND), dimension(nVertLevels+1,nCells+1) :: tend_w_buoy
 
-      real (kind=RKIND) :: coef_3rd_order, c_s
+      real (kind=RKIND) :: coef_3rd_order, c_s, c_v
       logical :: config_mix_full
       character (len=StrKIND) :: config_horiz_mixing
       real (kind=RKIND) :: config_del4u_div_factor
@@ -4955,6 +4956,7 @@ module atm_time_integration
 
       !real (kind=RKIND), parameter :: c_s = 0.125
       real (kind=RKIND), dimension( nVertLevels+1 ) :: d_diag, d_off_diag, flux_arr
+      real (kind=RKIND), dimension( nVertLevels+1 ) :: dudx, dudy, dvdx, dvdy
       real (kind=RKIND), dimension( nVertLevels + 1 ) :: wduz, wdwz, wdtz, dpzx
       real (kind=RKIND), dimension( nVertLevels ) :: ru_edge_w, q, u_mix
       real (kind=RKIND) :: theta_turb_flux, w_turb_flux, r
@@ -4973,6 +4975,8 @@ module atm_time_integration
 
       real (kind=RKIND) :: flux3, flux4
       real (kind=RKIND) :: q_im2, q_im1, q_i, q_ip1, ua, coef3
+      real (kind=RKIND) :: eps, num, den
+
 
       flux4(q_im2, q_im1, q_i, q_ip1, ua) =                     &
                 ua*( 7.*(q_i + q_im1) - (q_ip1 + q_im2) )/12.0
@@ -4981,12 +4985,13 @@ module atm_time_integration
                 flux4(q_im2, q_im1, q_i, q_ip1, ua) +           &
                 coef3*abs(ua)*((q_ip1 - q_im2)-3.*(q_i-q_im1))/12.0
 
+      eps = tiny(eps)
       prandtl_inv = 1.0_RKIND / prandtl
       invDt = 1.0_RKIND / dt
       inv_r_earth = 1.0_RKIND / r_earth
 
-       v_mom_eddy_visc2   = config_v_mom_eddy_visc2
-       v_theta_eddy_visc2 = config_v_theta_eddy_visc2
+      v_mom_eddy_visc2   = config_v_mom_eddy_visc2
+      v_theta_eddy_visc2 = config_v_theta_eddy_visc2
 
       if (rk_step == 1) then
 
@@ -5023,6 +5028,33 @@ module atm_time_integration
             kdiff(1:nVertLevels,cellStart:cellEnd) = config_h_theta_eddy_visc2
             h_mom_eddy_visc4 = config_h_mom_eddy_visc4
             h_theta_eddy_visc4 = config_h_theta_eddy_visc4
+
+         else if(config_horiz_mixing == "2d_vreman") then
+            do iCell = cellStart,cellEnd
+               dudx(1:nVertLevels) = 0.0
+               dudy(1:nVertLevels) = 0.0
+               dvdx(1:nVertLevels) = 0.0
+               dvdy(1:nVertLevels) = 0.0
+               do iEdge=1,nEdgesOnCell(iCell)
+                  do k=1,nVertLevels
+                     dudx(k) = dudx(k) + defc_a(iEdge,iCell)*u(k,EdgesOnCell(iEdge,iCell))
+                     dudy(k) = dudy(k) + defc_b(iEdge,iCell)*u(k,EdgesOnCell(iEdge,iCell))
+                     dvdx(k) = dvdx(k) + defc_a(iEdge,iCell)*v(k,EdgesOnCell(iEdge,iCell))
+                     dvdy(k) = dvdy(k) + defc_b(iEdge,iCell)*v(k,EdgesOnCell(iEdge,iCell))
+                  end do
+               end do
+!DIR$ IVDEP
+               do k=1, nVertLevels
+                  ! here is the Vreman formulation, 
+                  ! followed by imposition of an upper bound on the eddy viscosity
+                  num = (dudx(k)*dvdy(k) - dudy(k)*dvdx(k))**2
+                  den = max(eps, dudx(k)**2 + dudy(k)**2 + dvdx(k)**2 + dvdy(k)**2)
+                  kdiff(k,iCell) = min(c_v * (config_len_disp)**2 * sqrt(num/den),(0.01*config_len_disp**2) * invDt)
+               end do
+            end do
+
+            h_mom_eddy_visc4   = config_visc4_2dsmag * config_len_disp**3
+            h_theta_eddy_visc4 = h_mom_eddy_visc4
 
          end if
 

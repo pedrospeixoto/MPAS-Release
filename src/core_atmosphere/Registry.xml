@@ -140,11 +140,11 @@
                 <nml_option name="config_horiz_mixing" type="character" default_value="2d_smagorinsky"
                      units="-"
                      description="Formulation of horizontal mixing"
-                     possible_values="`2d_fixed' or `2d_smagorinsky'"/>
+                     possible_values="`2d_fixed', `2d_smagorinsky' or `2d_vreman'"/>
 
                 <nml_option name="config_len_disp" type="real" default_value="0.0" in_defaults="false"
                      units="m"
-                     description="Horizontal length scale, used by the Smagorinsky formulation of horizontal diffusion and by 3-d divergence damping"
+                     description="Horizontal length scale, used by the Smagorinsky and Vreman formulations of horizontal diffusion and by 3-d divergence damping"
                      possible_values="Positive real values. A zero value implies that the length scale is prescribed by the nominalMinDc value in the input file."/>
 
                 <nml_option name="config_visc4_2dsmag" type="real" default_value="0.05"
@@ -216,6 +216,11 @@
                      units="-"
                      description="Dimensionless empirical parameter relating the strain tensor to the eddy viscosity in the Smagorinsky turbulence model"
                      possible_values="Real values typically in the range 0.1 to 0.4"/>
+
+                <nml_option name="config_vreman_coef" type="real" default_value="0.032" in_defaults="false"
+                     units="-"
+                     description="Dimensionless empirical parameter relating the strain tensor to the eddy viscosity in the Vreman turbulence model. Relates to the Smagorinsky coefficient `c_s' by c_v ~ 2.5*c_s^2"
+                     possible_values="Real values typically in the range 0.025 to 0.4"/>
 
                 <nml_option name="config_mix_full" type="logical" default_value="true" in_defaults="false"
                      units="-"
@@ -1836,7 +1841,7 @@
                      description="predicted value rho_p, saved before acoustic steps"/>
 
                 <var name="kdiff" type="real" dimensions="nVertLevels nCells Time" units="m^2 s^{-1}"
-                     description="Smagorinsky horizontal eddy viscosity"/>
+                     description="Smagorinsky (or Vreman) horizontal eddy viscosity"/>
 
                 <var name="surface_pressure" type="real" dimensions="nCells Time" units="Pa"
                      description="Diagnosed surface pressure"/>
