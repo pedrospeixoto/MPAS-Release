@@ -67,14 +67,21 @@ def main(args):
         if (args.opt=="unif"):
             cellWidth, lon, lat = jutil.cellWidthVsLatLon(args.r)
         elif (args.opt=="localref"):
-            cellWidth, lon, lat = jutil.localrefVsLatLon(args.r, p=p)
+            cellWidth, lon, lat = jutil.localrefVsLatLon(args.r, l=args.l,
+                        radius_high=args.rad, transition_radius=args.tr, 
+                        clon = args.clon, clat=args.clat, p=p)
 
         mesh_file = jutil.jigsaw_gen_sph_grid(cellWidth, lon, lat, basename=out_basepath) 
 
     elif(args.opt=="icos"):
-
+        
+        if int(args.l) > 11:
+            print("Please provide a reasonable refinment level - from 1 to 15. Current value too large ", int(args.l))
+            print(" Setting level to 4")
+            args.l = 4
+            
         #Icosahedral grid
-        mesh_file = jutil.jigsaw_gen_icos_grid(basename=out_basepath, level=4)
+        mesh_file = jutil.jigsaw_gen_icos_grid(basename=out_basepath, level=int(args.l))
         
     else:
         print("Unknown option")
@@ -98,45 +105,71 @@ if __name__ == '__main__':
         description=__doc__,
         formatter_class=argparse.RawTextHelpFormatter)
 
-    
     parser.add_argument(
-        "-r",
-        "--resolution",
-        dest="r",
-        required=True,
-        type=float,
-        help="Resolution of grid (depends on the grid choice, see -g)",
+        "-r",  "--high", dest="r",
+        required=False, default=30, type=float,
+        help="Grid spacing for high resolution area - depends on the grid \
+choice, see -g (default: 30 km)",
         metavar="FLOAT")
     
     parser.add_argument(
-        "-o",
-        "--output",
-        dest="output",
-        default="grid",
+        "-l", "--low", dest="l", 
+        required=False, default=150, type=float,
+        help="Level of refinement on icosahedral grid, or global grid spacing \
+            (resolution area) for localref\
+            grid option, see -g (default: 150 km)",
+        metavar="FLOAT")
+    
+    parser.add_argument(
+        "-rad", "--radius", dest="rad", 
+        required=False, default=50, type=float,
+        help="radius of influence of high resolution area in km - only valid \
+for localref grid option, see -g (default: 50 km)",
+        metavar="FLOAT")
+
+    parser.add_argument(
+        "-tr",  "--transitionradius", dest="tr",
+        required=False, default=600, type=float,
+        help="radius of transition zone between high and low resolution in km \
+- only valid for local ref grid option, see -g (default: 600 km)",
+        metavar="FLOAT")
+    
+    parser.add_argument(
+        "-clat",  "--center_latitude", dest="clat",
+        required=False, default=0.0, type=float,
+        help="Latitude (in degrees) of centre point of refinement \
+- only valid for local ref grid option, see -g (default: 0 deg)",
+        metavar="FLOAT")
+    
+    parser.add_argument(
+        "-clon",  "--center_longitude", dest="clon",
+        required=False, default=0.0, type=float,
+        help="Longitude (in degrees) of centre point of refinement \
+- only valid for local ref grid option, see -g (default: 0 deg)",
+        metavar="FLOAT")
+    
+    parser.add_argument(
+        "-o", "--output", dest="output",
+        required=False, default="grid", type=str,
         help="output basename for directory and files.",
         metavar="STR")
 
     parser.add_argument(
-        "-p",
-        "--plot",
-        dest="plots",
-        default=0,
-        help="do plots of grid resolutions",
+        "-p", "--plot", dest="plots",
+        required=False, default=0, type=int,
+        help="do plots of grid resolutions (0 for no plots, any other value \
+for creating plots)",
         metavar="INT")
-
+    
     parser.add_argument(
-        "-g",
-        "--grid",
-        dest="opt",
-        default="icos",
-        type=str,
+        "-g", "--grid", dest="opt",
+        required=True, default="icos", type=str,
         help="""Grid option: \n 
-        " unif": Uniform resolution spherical grid (hand tune cellWidthVsLatLon function) \n
-                 Provide also a resolution with -r 30 (in km) \n
-        " icos": Spherical icosahedral grid \n
-                 Provide also a resolution with -r 6 (grid refinement level) \n
-        " localref" : Variable resolution spherical grid (hand tune cellWidthVsLatLon function) \n
-                 Provide also a resolution with -r 30 (in km) \n
+        "unif": Uniform resolution spherical grid (hand tune \
+cellWidthVsLatLon function) \n
+        "icos": Spherical icosahedral grid \n
+        "localref" : Variable resolution spherical grid (hand tune \
+cellWidthVsLatLon function) \n
             """,
         metavar="STR")
 

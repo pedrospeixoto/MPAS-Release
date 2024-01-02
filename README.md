@@ -1,9 +1,18 @@
-MPAS-v7.2 + Peixoto Modifications (See PXT_modifications_to_MPAS.txt file) + NUDGING (See MGB_modifications_to_MPAS.txt)
-====
+MPAS-v8.0.1 + Contributions (including nudging, see MPAS-BR-contributions-MGB.md) 
+===========================
 
-*NOTE (21st July 2022): This branch (https://github.com/marta-gil/MPAS-PXT-MGB/tree/mpas-nudging) contains a nudging implementation onto an MPAS-Model fork previously modified by Pedro Peixoto (https://github.com/pedrospeixoto/MPAS-PXT). In ``PXT_modifications_to_MPAS.txt`` there are the changes made by Pedro Peixoto, and in ``MGB_modifications_to_MPAS.txt`` the changes made by Marta Gil-Bardaji to include nudging. Contact person: marta.gil@vortexfdc.com.*
+MPAS-BR
+=======
+MPAS-BR is a fork from MPAS-Dev intended for the further development of the 
+Model for Prediction Across Scales by the Brazilian research community for 
+research purposes.
 
+For instructions on how to contribute to MPAS-BR, see MPAS-BR-how-to-contribute.md. 
+For a description of contributions made so far, see MPAS-BR-contributions-AUTHOR.md.
+For documentation on how to build and run MPAS-BR, see docs/mpas_br.
 
+INTRODUCTION TO MPAS
+====================
 The Model for Prediction Across Scales (MPAS) is a collaborative project for
 developing atmosphere, ocean, and other earth-system simulation components for
 use in climate, regional climate, and weather studies. The primary development
@@ -46,14 +55,17 @@ only described below the src directory.
 
 	MPAS-Model
 	├── src
-	│   ├── registry -- Code for building Registry.xml parser (Shared)
 	│   ├── driver -- Main driver for MPAS in stand-alone mode (Shared)
 	│   ├── external -- External software for MPAS (Shared)
 	│   ├── framework -- MPAS Framework (Includes DDT Descriptions, and shared routines. Shared)
 	│   ├── operators -- MPAS Opeartors (Includes Operators for MPAS meshes. Shared)
-	│   ├── inc -- Empty directory for include files that Registry generates (Shared)
+	│   ├── tools -- Empty directory for include files that Registry generates (Shared)
+	│   │   ├── registry -- Code for building Registry.xml parser (Shared)
+	│   │   └── input_gen -- Code for generating streams and namelist files (Shared)
 	│   └── core_* -- Individual model cores.
-        └────── testing_and_setup -- tools for setting up configurations and tests cases (Shared)
+	│       └── inc -- Empty directory for include files that Registry generates
+	├── testing_and_setup -- Tools for setting up configurations and test cases (Shared)
+	└── default_inputs -- Copies of default stream and namelists files (Shared)
 
 Model cores are typically developed independently. For information about
 building and running a particular core, please refer to that core's user's

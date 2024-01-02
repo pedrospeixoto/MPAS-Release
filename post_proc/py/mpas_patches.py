@@ -2,7 +2,7 @@ import os
 import sys
 import time
 import pickle as pkle
-
+import copy
 import numpy as np
 
 import matplotlib
@@ -58,9 +58,12 @@ def get_mpas_patches_cell(mesh, pickle=True, pickleFile=None):
     if pickleFile:
         pickle_fname = pickleFile
     else:
-        pickle_fname = mesh.config_block_decomp_file_prefix.split('/')[-1]
-        pickle_fname = pickle_fname.split('.')[0]
-        pickle_fname = pickle_fname+'.'+str(nCells)+'.'+'patches'
+        try:
+            pickle_fname = mesh.config_block_decomp_file_prefix.split('/')[-1]
+            pickle_fname = pickle_fname.split('.')[0]
+            pickle_fname = pickle_fname+'.'+str(nCells)+'.'+'patches'
+        except:
+            pickle_fname = 'patches'
 
     print(pickle_fname)
 
@@ -69,7 +72,7 @@ def get_mpas_patches_cell(mesh, pickle=True, pickleFile=None):
         try:
             patch_collection = pkle.load(pickled_patches)
             pickled_patches.close()
-            print("Pickle file (", pickle_fname, ") loaded succsfully")
+            print("Pickle file (", pickle_fname, ") loaded succesfully")
             return patch_collection
         except:
             print("ERROR: Error while trying to read the pickled patches")
@@ -230,16 +233,26 @@ def get_mpas_patches_edge(mesh, pickle=True, pickleFile=None):
     return patch_collection
 
 
-def plot_var_in_patch(var, patch_collection, label, title, outfile):
+def plot_var_in_patch(var, patch_collect, label, title, outfile):
+
+    #Make a copy of the collection, to avoid sideeffects
+    patch_collection = copy.deepcopy(patch_collect)
 
     fig = plt.figure()
     ax = plt.gca()
 
+    #bmap = Basemap(projection='cyl', 
+    #           llcrnrlat=-90,
+    #           urcrnrlat=90,
+    #           llcrnrlon=0,
+    #           urcrnrlon=360,
+    #           resolution='l')
+
     bmap = Basemap(projection='cyl', 
                llcrnrlat=-90,
                urcrnrlat=90,
-               llcrnrlon=0,
-               urcrnrlon=360,
+               llcrnrlon=-180,
+               urcrnrlon=180,
                resolution='l')
 
     bmap.drawcoastlines()

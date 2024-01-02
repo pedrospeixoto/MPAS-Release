@@ -23,7 +23,7 @@
 ################################################################################
 
 
-mpas_vers="7.0"
+mpas_vers="8.0"
 
 github_org="MPAS-Dev"   # GitHub organization where the MPAS-Data repository is found.
                         # For physics development, it can be helpful for a developer
@@ -73,7 +73,7 @@ fi
 which git
 if [ $? -eq 0 ]; then
    echo "*** Trying git to obtain WRF physics tables ***"
-   git clone git://github.com/${github_org}/MPAS-Data.git
+   git clone https://github.com/${github_org}/MPAS-Data.git
    if [ $? -eq 0 ]; then
       cd MPAS-Data
       git checkout v${mpas_vers}

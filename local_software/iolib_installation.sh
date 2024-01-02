@@ -3,12 +3,23 @@
 #
 # Sources for all libraries used in this script can be found at
 # Updated by P. Peixoto on Feb 2022 based on mduda's original script
+# updated on Sep 2022 to download and install gcc-8
+# updated by F.A.V.B. Alves on June 2023 to address some issues when system's gcc version is >=13
 
 BASEDIR=$PWD
 
 echo "Script for MPAS pre-requisites"
 echo "-----------------------------"
-#echo " Set to work with GCC *, GFORTRAN 8"
+echo " Set to work with GCC 8, GFORTRAN 8"
+
+all=true
+packinstall=all
+while getopts i:a flag
+do
+    case "${flag}" in
+        i) packtoinstall=${OPTARG};;
+    esac
+done
 
 if [[ $BASEDIR == *"local_software"* ]]; then
     echo "We are in the right directory!" $BASEDIR
@@ -20,6 +31,18 @@ else
     exit 1
 fi
 
+if [[ ! -d "gccsources" ]]; then
+    #Download data
+    echo "Downloading data from gcc"
+    URL=http://mirrors.concertpass.com/gcc/releases/gcc-8.5.0/gcc-8.5.0.tar.gz
+    mkdir gccsources
+    cd gccsources
+    wget $URL 
+    cd ..
+else
+    echo "Seems like we already have the gcc source in local dir!"
+fi
+
 if [[ ! -d "people/duda/files/mpas" ]]; then
     #Download data
     echo "Downloading data from ncar"
@@ -27,22 +50,25 @@ if [[ ! -d "people/duda/files/mpas" ]]; then
     wget $URL -np -nH -r -N -c -e robots=off
     ln -s people/duda/files/mpas/sources ncarsources
 else
-    echo "Seems like we already have the data in local dir!"
+    echo "Seems like we already have the ncar sources in local dir!"
 fi
 
+echo
+echo "Installing packages from source:" $packtoinstall
 
 # Where to find sources for libraries
 
 export LIBSRC=$BASEDIR/ncarsources
+export LIBSRC_GCC=$BASEDIR/gccsources
 
 # Where to install libraries
 export LIBBASE=$BASEDIR/libs #/scratch/duda/mpas-libs-gnu8.3.0
 
 # Compilers
-export SERIAL_FC=gfortran-8
-export SERIAL_F77=gfortran-8
-export SERIAL_CC=gcc-8
-export SERIAL_CXX=g++-8
+export SERIAL_FC=gfortran
+export SERIAL_F77=gfortran
+export SERIAL_CC=gcc
+export SERIAL_CXX=g++
 export MPI_FC=mpifort
 export MPI_F77=mpifort
 export MPI_CC=mpicc
@@ -62,19 +88,50 @@ export FCFLAGS="-g -fbacktrace"
 export F77FLAGS="-g -fbacktrace"                       
 
 ########################################
+# GCC-8
+########################################
+
+if [[ $packtoinstall = "gcc" ]] ; then
+   tar xzvf ${LIBSRC_GCC}/gcc-8.5.0.tar.gz
+   cd gcc-8.5.0
+   ./contrib/download_prerequisites
+   ./configure --prefix=${LIBBASE} --enable-languages=c,c++,fortran --disable-multilib
+   make -j 4
+   retVal=$?
+   # @FAVBA I couldn't compile gcc8.5.0 with gcc13 unless I disabled some options. If compilation fails, tries compiling with nls and libsanitizer disabled
+   if [ $retVal -ne 0 ]; then
+      ./configure --prefix=${LIBBASE} --enable-languages=c,c++,fortran --disable-multilib --disable-nls --disable-libsanitizer
+      make -j 4
+      retVal2=$?
+      [ $retVal2 -ne 0 ] && echo "Compilation of gcc 8.5.0 failed" && exit $retVal2
+   fi
+   #make check
+   make install
+   #make testing
+   cd ..
+   rm -rf gcc-8.5.0
+   #exit 1
+fi
+
+
+export PATH=${LIBBASE}/bin:$PATH
+export LD_LIBRARY_PATH=${LIBBASE}/lib:$LD_LIBRARY_PATH
+
+########################################
 #Check if gcc-8 and gfortran-8 are in the system
 ########################################
-if gcc-8 --version | grep -q "8."; then
-    if gfortran-8 --version | grep -q "8."; then
-	echo "gcc-8 and gfortran-8 seems to be here. Great!"
+if gcc --version | grep -q "8."; then
+    if gfortran --version | grep -q "8."; then
+	    echo "gcc-8 and gfortran-8 seems to be here. Great!"
     else
-	echo "Please install gfortran-8"
-	exit 1
+	    echo "Please install gfortran-8"
+	    exit 1
     fi
-else
+else 
     echo "Please install gcc-8 and gfortran-8"
     echo "sudo apt-get install gcc-8"
     echo "sudo apt-get install gfortran-8"
+    echo "or install from source"
     exit 1
 fi
 
@@ -83,7 +140,7 @@ fi
 # MPICH
 ########################################
 
-if true ; then
+if [ $packtoinstall = "all" ] || [ $packtoinstall = "mpich" ] ; then
    tar xzvf ${LIBSRC}/mpich-3.3.1.tar.gz
    cd mpich-3.3.1
    ./configure --prefix=${LIBBASE}
@@ -96,14 +153,11 @@ if true ; then
    #exit 1
 fi
 
-export PATH=${LIBBASE}/bin:$PATH
-export LD_LIBRARY_PATH=${LIBBASE}/lib:$LD_LIBRARY_PATH
-
 
 ########################################
 # zlib 
 ########################################
-if true ; then
+if [ $packtoinstall = "all" ] || [ $packtoinstall = "zlib" ] ; then
     tar xzvf ${LIBSRC}/zlib-1.2.11.tar.gz
     cd zlib-1.2.11
     ./configure --prefix=${LIBBASE} --static
@@ -117,7 +171,7 @@ fi
 ########################################
 # HDF5 
 ########################################
-if true ; then
+if [ $packtoinstall = "all" ] || [ $packtoinstall = "hdf5" ] ; then
     tar xjvf ${LIBSRC}/hdf5-1.10.5.tar.bz2
     cd hdf5-1.10.5
     export FC=$MPI_FC
@@ -135,7 +189,7 @@ fi
 ########################################
 # Parallel-netCDF - use mpich!!!
 ########################################
-if true ; then
+if [ $packtoinstall = "all" ] || [ $packtoinstall = "pnetcdf" ] ; then
     tar xzvf ${LIBSRC}/pnetcdf-1.11.2.tar.gz
     cd pnetcdf-1.11.2
     export CC=$SERIAL_CC
@@ -162,7 +216,7 @@ export PNETCDF=${LIBBASE}
 ########################################
 # netCDF (C library)
 ########################################
-if true; then
+if [ $packtoinstall = "all" ] || [ $packtoinstall = "netcdf" ] ; then
     tar xzvf ${LIBSRC}/netcdf-c-4.7.0.tar.gz
     cd netcdf-c-4.7.0
     export CPPFLAGS="-I${LIBBASE}/include"
@@ -184,7 +238,7 @@ export NETCDF=${LIBBASE}
 ########################################
 # netCDF (Fortran interface library)
 ########################################
-if true; then
+if [ $packtoinstall = "all" ] || [ $packtoinstall = "netcdf-fortran" ] ; then
     tar xzvf ${LIBSRC}/netcdf-fortran-4.4.5.tar.gz
     cd netcdf-fortran-4.4.5
     export FC=$MPI_FC
@@ -202,7 +256,7 @@ fi
 ########################################
 # PIO
 ########################################
-if true; then
+if [ $packtoinstall = "all" ] || [ $packtoinstall = "pio" ] ; then
     git clone https://github.com/NCAR/ParallelIO
     cd ParallelIO
     git checkout -b pio-2.4.4 pio2_4_4
@@ -214,6 +268,14 @@ if true; then
     export FC=$MPI_FC
     cmake -DNetCDF_C_PATH=$NETCDF -DNetCDF_Fortran_PATH=$NETCDF -DPnetCDF_PATH=$PNETCDF -DHDF5_PATH=$NETCDF -DCMAKE_INSTALL_PREFIX=$LIBBASE -DPIO_USE_MALLOC=ON -DCMAKE_VERBOSE_MAKEFILE=1 -DPIO_ENABLE_TIMING=OFF $PIOSRC
     make
+    retVal=$?
+    # @FAVBA newer cmake version (mine was v3.26.4) didn't work with gcc 8.5.0 for me. If cmake configuration fails, tries configuring using 'autoreconf' and 'configure'
+    if [ $retVal -ne 0 ]; then
+	make clean
+        autoreconf -if
+	    LIBRARY_PATH=$LIBBASE/lib CPATH=$LIBBASE/include ./configure --prefix=${LIBBASE} --disable-timing --enable-fortran
+	    LIBRARY_PATH=$LIBBASE/lib CPATH=$LIBBASE/include make
+    fi
     #make check
     make install
     cd ..

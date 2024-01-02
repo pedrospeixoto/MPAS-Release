@@ -63,14 +63,23 @@ def cellWidthVsLatLon(r=70):
     return cellWidth, lon, lat
 
 
-def localrefVsLatLon(r, earth_radius=6371.0e3, p=False):
+def localrefVsLatLon(r=12,l=150, radius_high=50, transition_radius=600,
+                     clon = 0.0, clat=0.0, p=False):
     """
     Create cell width array for this mesh on a locally refined latitude-longitude grid.
     Input
     ---------
-    r : float
-        minimun desired cell width resolution in km
-
+    h : float
+        grid spacing for high resolution area in km
+    l : float
+        grid spacing for low resolution area in km
+    radius_high : float
+        radius of influence of high resolution area in km
+    transition_radius : float
+        radius of the transition zone between high and low resolution in km 
+    clon, clat : floats
+        lon, lat of centre point
+        
     Returns
     -------
     cellWidth : ndarray
@@ -80,9 +89,10 @@ def localrefVsLatLon(r, earth_radius=6371.0e3, p=False):
     lat : ndarray
         longitude in degrees (length m and between -90 and 90)
     """
-    dlat = 0.5 #Make the lat-lon grid ~ 10x finer than resolution at equator, where 1deg ~ 100km
+    dlat = r/200 #Make the lat-lon grid ~ 10x finer than resolution at equator, where 1deg ~ 100km
     dlon = dlat
     constantCellWidth = r  #in km
+    print("Trying to set grid spacing of high resolution zone to approximately: "+str(constantCellWidth))
 
     nlat = int(180./dlat) + 1
     nlon = int(360./dlon) + 1
@@ -91,8 +101,9 @@ def localrefVsLatLon(r, earth_radius=6371.0e3, p=False):
     lon = np.linspace(-180., 180., nlon)
 
     lons, lats = np.meshgrid(lon, lat)
-    #Calculate distances to center (lat=0,lon=0)
-    dists = latlon_to_distance_center(lons, lats)
+
+    #Calculate distances to center (lat=clat,lon=clon)
+    dists = latlon_to_distance_center(lons, lats, clon, clat)
 
     if p:
         h = plt.contourf(lons, lats, dists)
@@ -104,26 +115,46 @@ def localrefVsLatLon(r, earth_radius=6371.0e3, p=False):
     #------------------------------
 
     # Radius (in km) of high resolution area
-    maxdist = 50
-    #(increase_of_resolution) / (distance)
-    slope = 10./600.
-    #Gammas
-    gammas = 150.
+    maxdist = radius_high
+    print("Radius of high resolution area set approximately to: "+str(maxdist))
+
+    distance = transition_radius/10
+    print("Transition zone from high to low resolution set approximately to: "+ str(transition_radius))
+    # (increase_of_resolution) / (distance)
+    slope = 10./distance
+    # Gammas
+    gammas = l
+    print("Global grid spacing set to approximately: "+str(gammas))
+    
     # distance (in km) of transition zone belt: ratio / slope
     maxepsilons = 10000.
     epsilons = gammas/slope
     
     if(epsilons > maxepsilons):
+        print("Transition zone too wide: set to 10,000 km")
         epsilons = maxepsilons
+    
+    # ## If radius of transition zone is not provided, try to find best value
+    # if not(transition_radius):
+    #     # distance (in km) of transition zone belt: ratio / slope
+    #     maxepsilons = 10000.
+    #     epsilons = gammas/slope
+        
+    #     if(epsilons > maxepsilons):
+    #         epsilons = maxepsilons
+    #     print("Transition zone radius not provided. Value set to: "+str(epsilons))
+    # else:
+    #     epsilons = transition_radius
+    #     print("Transition zone radius provided: "+str(epsilons))
 
 
     # initialize with resolution = r (min resolution)
-    resolution = r*np.ones(np.shape(dists))    
+    resolution = constantCellWidth * np.ones(np.shape(dists))    
 
     # point in transition zone
     transition_zone = (dists > maxdist) & (dists <= maxdist + epsilons)
-    sx = (dists - maxdist ) *slope
-    transition_values = r + sx
+    sx = (dists - maxdist ) * slope
+    transition_values = constantCellWidth + sx
     resolution = np.where(transition_zone, transition_values, resolution)
 
     # further points
@@ -167,13 +198,16 @@ def density_function_dists(dists, slope=None, gammas=None, maxdist=None,
     return dens_f
 
 
-def latlon_to_distance_center(lon, lat):
-    lon, lat = map(np.radians, [lon, lat])
+def latlon_to_distance_center(lon, lat, clon = 0.0, clat = 0.0):
 
-    haver_formula = np.sin(lat / 2.0) ** 2 + \
-                    np.cos(lat) * np.sin(lon / 2.0) ** 2
+    lon, lat = map(np.radians, [lon, lat])
+    clon, clat = map(np.radians, [clon, clat])
+
+    haver_formula = np.sin( (lat-clat)/ 2.0) ** 2 + \
+                    np.cos(lat) * np.cos(clat) * np.sin((lon-clon) / 2.0) ** 2
 
     dists = 2 * np.arcsin(np.sqrt(haver_formula)) * 6367
+
     return dists
 
 
@@ -229,10 +263,10 @@ def jigsaw_gen_sph_grid(cellWidth, x, y, earth_radius=6371.0e3,
     opts.hfun_hmax = float("inf")
     opts.hfun_hmin = 0.0
     opts.mesh_dims = +2  # 2-dim. simplexes
-    opts.mesh_iter = 500000
+    opts.mesh_iter = 5000000
     opts.optm_qlim = 0.9375
     opts.optm_qtol = 1.0e-6
-    opts.optm_iter = 500000
+    opts.optm_iter = 5000000
     opts.verbosity = +1
     jig.savejig(opts.jcfg_file, opts)
     
@@ -259,8 +293,8 @@ def jigsaw_gen_icos_grid(basename="mesh", level=4):
 
     opts.hfun_hmax = +1.
     opts.mesh_dims = +2                 # 2-dim. simplexes
-    opts.optm_iter = +512
-    opts.optm_qtol = +1.0E-06
+    opts.optm_iter = +5120
+    opts.optm_qtol = +1.0E-08
     
     jig.cmd.icosahedron(opts, level, icos)    
 

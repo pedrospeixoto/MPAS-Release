@@ -33,6 +33,7 @@ export PNETCDF_PATH=${LIBBASE}
 export PIO_PATH=${LIBBASE}
 
 
+#host='nemo'
 host=`hostname`
 if [[ $host == mac* ]]; then
 	echo "DETECTED MAC CLUSTER (AMD), LOADING STUFF"
@@ -63,7 +64,7 @@ if [[ $host == mac* ]]; then
 	export MPIF90=mpif90
 	export MPIF77=mpif77
 	export MPICC=mpicc
-	
+
 	
 elif [[ $host == bgq* ]]; then
 
@@ -148,6 +149,50 @@ elif [[ $host == ybytu* ]]; then
 	export FFLAGS="-g -fbacktrace"                          
 	export FCFLAGS="-g -fbacktrace"
 	export F77FLAGS="-g -fbacktrace" 
+
+
+elif [[ $host == nemo ]]; then
+
+        echo "Detected MASTER's nemo machine, loading enviroment..."
+        export MPI_FC=mpifort
+        export MPI_F77=mpifort
+	export SERIAL_FC=gfortran
+	export SERIAL_F77=gfortran
+	export SERIAL_CC=gcc
+	export SERIAL_CXX=g++
+	export MPI_FC=mpifort
+	export MPI_F77=mpifort
+	export MPI_CC=mpicc
+	export MPI_CXX=mpic++
+
+
+        export CC=$SERIAL_CC
+        export CXX=$SERIAL_CXX
+        export F77=$SERIAL_F77
+        export FC=$SERIAL_FC
+        #export F90=$SERIAL_FC
+        unset F90  # required to install mpich (God knows why...)
+        unset F90FLAGS  # required to install mpich (God knows why...)
+        export CFLAGS="-g"
+        export FFLAGS="-g -fbacktrace"
+        export FCFLAGS="-g -fbacktrace"
+        export F77FLAGS="-g -fbacktrace"
+
+        BASEDIR=$PWD/local_software/
+        export LIBSRC_GCC=$BASEDIR/gccsources/
+        export LIBBASE=$BASEDIR/libs
+        export LIBBASEGCC=$BASEDIR/libs-gcc
+       
+        export PATH=${LIBBASE}/bin:$PATH
+        export PATH=${LIBBASEGCC}/bin:$PATH
+        export LD_LIBRARY_PATH=${LIBBASE}/lib/:$LD_LIBRARY_PATH
+        export LD_LIBRARY_PATH=${LIBBASE}/lib64/:$LD_LIBRARY_PATH
+        export LD_LIBRARY_PATH=${LIBBASEGCC}/lib/gcc/x86_64-pc-linux-gnu/:$LD_LIBRARY_PATH
+        export LD_LIBRARY_PATH=${LIBBASEGCC}/lib64/:$LD_LIBRARY_PATH
+        export LD_LIBRARY_PATH=${LIBBASEGCC}/lib:$LD_LIBRARY_PATH
+
+        export PATH=${PWD}/MPAS-Tools/mesh_tools/grid_rotate:${PATH}
+        export PATH="/p1-nemo/danilocs/mpas/convert_mpas:$PATH"
 
 else
 	echo "********************************************************"
