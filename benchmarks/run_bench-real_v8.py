@@ -3,10 +3,10 @@
 #                                                         :::      ::::::::    #
 #    run_bench-real_v8.py                               :+:      :+:    :+:    #
 #                                                     +:+ +:+         +:+      #
-#    By: Danilo <danilo.oceano@gmail.com>           +#+  +:+       +#+         #
+#    By: daniloceano <danilo.oceano@gmail.com>      +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2022/11/01 12:00:00 by Danilo            #+#    #+#              #
-#    Updated: 2023/07/26 18:06:13 by Danilo           ###   ########.fr        #
+#    Updated: 2024/03/20 22:02:59 by daniloceano      ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -27,6 +27,11 @@ import mpas_benchmarks_RealCase as bench
 
 # Get args: init or run core
 args = bench.call_parser()
+
+# Print all used options
+print("Script options:")
+for arg in vars(args):
+    print(f"{arg}: {getattr(args, arg)}")
 
 #Workspace
 work_dir = os.getenv('MPAS_DIR')
