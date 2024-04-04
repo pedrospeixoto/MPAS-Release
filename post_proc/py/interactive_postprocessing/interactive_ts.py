@@ -172,20 +172,23 @@ def ts(t0,tf,dt,lat,lon,vertlevel,var,
 
     return datetime_list, y_series, var
 
-def plot_ts(t,y,label=None,ofile=None):
+def plot_ts(t,y,label=None,title=None,labelsize=12,ofile=None):
     plt.figure('ts')
     if label is not None:
         plt.plot(t,y,linestyle='-',label=label)
         plt.legend(loc='center left', bbox_to_anchor=(1, 0.5))
     else:
         plt.plot(t,y,linestyle='-')
-    plt.tick_params(axis='both', which='major', labelsize=12)
+    if title is not None:
+        plt.title(title, fontsize=labelsize)
+    plt.tick_params(axis='both', which='major', labelsize=labelsize)
     plt.xticks(rotation=45, ha='right')
     plt.grid(True)
     plt.tight_layout()
     if ofile is not None:
         plt.savefig(ofile)
-    plt.show(block=False)
+    plt.ion()
+    plt.show()
 
 if __name__ == "__main__":
     # Create ArgumentParser object
