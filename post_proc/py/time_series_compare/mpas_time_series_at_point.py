@@ -46,7 +46,7 @@ parser.add_argument('--tf', type=str,
                     help='final datetime (YYYY-mm-dd HH:MM:SS)')
 parser.add_argument('--dt', type=str, 
                     help='datetime step (seconds)')
-parser.add_argument('--closest_value', type=str, default='euclidean',
+parser.add_argument('--closest_value', type=str, default='haversine',
                     help='method to find grid cell from (lat,lon)')
 
 # Parse the command line arguments
@@ -74,7 +74,8 @@ lon = float(args.lon)
 vertlevel = int(args.vertlevel)
 
 # Find grid cell
-nCells, ds = find_nCells_from_latlon(cat_file,lon=lon,lat=lat)
+nCells, ds = find_nCells_from_latlon(cat_file,lon=lon,lat=lat,
+                                     method=args.closest_value)
 
 # Plot
 ## Get again list of variables for plotting
