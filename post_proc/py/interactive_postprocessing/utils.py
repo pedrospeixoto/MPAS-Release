@@ -116,16 +116,20 @@ def concat_mpas_output(stream,datetime_list,data_dir,vars_list):
 
 def closest_value_haversine(ds,lon,lat):
     df = ds.to_dataframe()
+    print ('haversine distance')
     df['dist_norm'] = df.apply(lambda row: 
                                haversine((row['latitude'],row['longitude']), 
                                          (lat,lon)), axis=1)
-    mask = df['dist_norm'] == df['dist_norm'].min()
+    print (df['dist_norm'].min())
+    mask = ds['dist_norm'] == df['dist_norm'].min()
     nCells_value = df.loc[mask, :].index.get_level_values('nCells')[0]
     df_masked = df.loc[mask,:]
     return nCells_value
 
 def closest_value_euclidean(ds,lon,lat):
     ds['dist_norm'] = np.sqrt((ds['longitude'] - lon)**2 + (ds['latitude'] - lat)**2)
+    print ('euclidean distance')
+    print (ds['dist_norm'].min())
     mask = ds['dist_norm'] == ds['dist_norm'].min()
     nCells_index = mask.argmax(dim='nCells')
     nCells_value = ds['nCells'].isel(nCells=nCells_index.values.item())

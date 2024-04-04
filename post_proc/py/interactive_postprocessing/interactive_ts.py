@@ -153,7 +153,8 @@ def ts(t0,tf,dt,lat,lon,vertlevel,var,
     vertlevel = int(vertlevel)
 
     # Find grid cell
-    nCells, ds = find_nCells_from_latlon(cat_file,lon=lon,lat=lat)
+    nCells, ds = find_nCells_from_latlon(cat_file,lon=lon,lat=lat,
+                                         method=closest_value)
 
     # Define time series
     try:
