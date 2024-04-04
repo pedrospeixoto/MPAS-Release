@@ -4,8 +4,6 @@ import xarray as xr
 import numpy as np
 import math
 import pandas as pd
-from geopy.distance import distance
-from haversine import haversine
 
 #TODO: utils.py should contain generally useful functions for postprocessing.
 #      Therefore, it should live under MPAS-BR/post_proc/py/.
