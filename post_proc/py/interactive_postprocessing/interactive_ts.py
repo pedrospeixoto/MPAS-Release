@@ -108,7 +108,7 @@ def ts_vars_list(t0,tf,dt,lat,lon,vertlevel,var,
     plt.show()
 
 def ts(t0,tf,dt,lat,lon,vertlevel,var,
-       dir,stream='history',closest_value='euclidean'):
+       dir,stream='history',closest_value='haversine'):
     '''
     Reads MPAS raw $stream output files from $dir and returns a 
     list of dates and times $datetime_list, a time series of $var ($y_series)

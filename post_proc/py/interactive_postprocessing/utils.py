@@ -4,6 +4,8 @@ import xarray as xr
 import numpy as np
 import math
 import pandas as pd
+from geopy.distance import distance
+from haversine import haversine
 
 #TODO: utils.py should contain generally useful functions for postprocessing.
 #      Therefore, it should live under MPAS-BR/post_proc/py/.
@@ -114,38 +116,60 @@ def concat_mpas_output(stream,datetime_list,data_dir,vars_list):
         cat_file = xr.concat([cat_file, ds_temp], dim='Time')
     return cat_file
 
+def get_distance_haversine(lats, lons, lat_ref, lon_ref):
+    '''
+    Using the haversine formula (https://en.wikipedia.org/wiki/Haversine_formula), 
+    returns the distance in km of each lat, lon point to (lat_ref,lon_ref).
+     
+    from Marta G. Badarjí, slightly modified (based on 
+    pypi haversine package: https://pypi.org/project/haversine/) 
+    by G. Torres Mendonça
+    '''
+
+    radius = 6371.0088  # km
+    d_lat = np.radians(lats - lat_ref)  # lat distance in radians
+    d_lon = np.radians(lons - lon_ref)  # lon distance in radians
+
+    a = (np.sin(d_lat / 2.) * np.sin(d_lat / 2.) +
+         np.cos(np.radians(lat_ref)) * np.cos(np.radians(lats)) *
+         np.sin(d_lon / 2.) * np.sin(d_lon / 2.))
+    c = np.arcsin(np.sqrt(a))
+    d = 2 * radius * c
+
+    return d
+
 def closest_value_haversine(ds,lon,lat):
-    df = ds.to_dataframe()
-    print ('haversine distance')
-    df['dist_norm'] = df.apply(lambda row: 
-                               haversine((row['latitude'],row['longitude']), 
-                                         (lat,lon)), axis=1)
-    print (df['dist_norm'].min())
-    mask = ds['dist_norm'] == df['dist_norm'].min()
-    nCells_value = df.loc[mask, :].index.get_level_values('nCells')[0]
-    df_masked = df.loc[mask,:]
-    return nCells_value
+    d = get_distance_haversine(ds['latitude'].values, ds['longitude'].values,
+                                            lat_ref=lat, lon_ref=lon)
+    ds['distance'] = xr.DataArray(d, dims=['nCells'])
+    #print ('distance data array')
+    #print (ds[['distance','longitude','latitude']])
+    nCells_index = ds['distance'].argmin().item()
+    #print ('nCells_index')
+    #print (nCells_index)
+    #print ('distance min')
+    #print (ds['distance'].min())
+    #print ('ds[nCells]:')
+    #print (ds['nCells'])
+    nCells_value = ds['nCells'].isel(nCells=nCells_index)
+    distance_value = ds['distance'].isel(nCells=nCells_index)
+    return nCells_value, distance_value
 
-def closest_value_euclidean(ds,lon,lat):
-    ds['dist_norm'] = np.sqrt((ds['longitude'] - lon)**2 + (ds['latitude'] - lat)**2)
-    print ('euclidean distance')
-    print (ds['dist_norm'].min())
-    mask = ds['dist_norm'] == ds['dist_norm'].min()
-    nCells_index = mask.argmax(dim='nCells')
-    nCells_value = ds['nCells'].isel(nCells=nCells_index.values.item())
-    return nCells_value
-
-def find_nCells_from_latlon(ds,lon,lat,method='euclidean',verbose='y'):
+def find_nCells_from_latlon(ds,lon,lat,method='haversine',verbose='y'):
     ds = add_mpas_mesh_variables(ds)
-    if method == 'euclidean':
-        index_closest  = closest_value_euclidean(ds=ds.sel(Time=0),lon=lon,lat=lat)
-    elif method == 'haversine':
-        index_closest  = closest_value_haversine(ds=ds.sel(Time=0),lon=lon,lat=lat)
+    if method == 'haversine':
+        index_closest, distance_value  = closest_value_haversine(ds=ds.sel(Time=0),lon=lon,lat=lat)
+    else:
+        print (f"{method} method not supported.")
+        exit (-1)
     if verbose == 'y':
         # Print information on (lon,lat) point
         closest_lon = ds['longitude'].sel(Time=0,nCells=index_closest)
         closest_lat = ds['latitude'].sel(Time=0,nCells=index_closest)
         print ("input (lon,lat):", (lon,lat))
         print ("closest (lon,lat):", (float(closest_lon),float(closest_lat)))
+        print ("distance to input point (km):", distance_value.values)
         print ("corresponding nCells value:",index_closest.values)
+        print ('max/min lat:', ds['latitude'].values.max(),ds['latitude'].values.min())
+        print ('max/min lon:', ds['longitude'].values.max(),ds['longitude'].values.min())
     return index_closest, ds
