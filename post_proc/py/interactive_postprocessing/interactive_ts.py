@@ -108,7 +108,7 @@ def ts_vars_list(t0,tf,dt,lat,lon,vertlevel,var,
     plt.show()
 
 def ts(t0,tf,dt,lat,lon,vertlevel,var,
-       dir,stream='history',closest_value='haversine'):
+       dir,stream='history',verbose='n',closest_value='haversine'):
     '''
     Reads MPAS raw $stream output files from $dir and returns a 
     list of dates and times $datetime_list, a time series of $var ($y_series)
@@ -140,7 +140,7 @@ def ts(t0,tf,dt,lat,lon,vertlevel,var,
 
     # Select variable and concatenate files between t0 and tf
     var_list = cs_string_to_list(var)
-    cat_file = concat_mpas_output(
+    cat_file, first_file = concat_mpas_output(
         stream=stream,
         datetime_list=datetime_list,
         data_dir=dir,
@@ -152,15 +152,17 @@ def ts(t0,tf,dt,lat,lon,vertlevel,var,
     lon = float(lon)
     vertlevel = int(vertlevel)
 
-    # Find grid cell
-    nCells, ds = find_nCells_from_latlon(cat_file,lon=lon,lat=lat,
+    # Find grid cell using only first file
+    nCells, first_file = find_nCells_from_latlon(ds=first_file,
+                                         lon=lon,lat=lat,
+                                         verbose=verbose,
                                          method=closest_value)
 
     # Define time series
     try:
-        y_series = ds[var].sel(nCells=nCells,nVertLevels=vertlevel).values
+        y_series = cat_file[var].sel(nCells=nCells,nVertLevels=vertlevel).values
     except: 
-        y_series = ds[var].sel(nCells=nCells).values
+        y_series = cat_file[var].sel(nCells=nCells).values
     
     # Define list of dates
     datetime_list = create_datetime_range(

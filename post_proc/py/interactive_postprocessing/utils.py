@@ -108,13 +108,14 @@ def concat_mpas_output(stream,datetime_list,data_dir,vars_list):
     vars_list.extend(['latCell','lonCell','latVertex','lonVertex','areaCell'])
     # Read first file
     filename1 = stream + '.' + datetime_list[0] + '.nc'
+    first_file = xr.open_dataset(f'{data_dir}/{filename1}', engine='netcdf4')[vars_list]
     cat_file = xr.open_dataset(f'{data_dir}/{filename1}', engine='netcdf4')[vars_list]
     # Read and concatenate that file to remaining files
     for datetime in datetime_list[1:]:
         filename = stream + '.' + datetime + '.nc'
         ds_temp = xr.open_dataset(f'{data_dir}/{filename}', engine='netcdf4')[vars_list]
         cat_file = xr.concat([cat_file, ds_temp], dim='Time')
-    return cat_file
+    return cat_file, first_file
 
 def get_distance_haversine(lats, lons, lat_ref, lon_ref):
     '''
@@ -155,17 +156,17 @@ def closest_value_haversine(ds,lon,lat):
     distance_value = ds['distance'].isel(nCells=nCells_index)
     return nCells_value, distance_value
 
-def find_nCells_from_latlon(ds,lon,lat,method='haversine',verbose='y'):
+def find_nCells_from_latlon(ds,lon,lat,method='haversine',verbose='n'):
     ds = add_mpas_mesh_variables(ds)
     if method == 'haversine':
-        index_closest, distance_value  = closest_value_haversine(ds=ds.sel(Time=0),lon=lon,lat=lat)
+        index_closest, distance_value  = closest_value_haversine(ds=ds,lon=lon,lat=lat)
     else:
         print (f"{method} method not supported.")
         exit (-1)
     if verbose == 'y':
         # Print information on (lon,lat) point
-        closest_lon = ds['longitude'].sel(Time=0,nCells=index_closest)
-        closest_lat = ds['latitude'].sel(Time=0,nCells=index_closest)
+        closest_lon = ds['longitude'].sel(nCells=index_closest)
+        closest_lat = ds['latitude'].sel(nCells=index_closest)
         print ("input (lon,lat):", (lon,lat))
         print ("closest (lon,lat):", (float(closest_lon),float(closest_lat)))
         print ("distance to input point (km):", distance_value.values)
