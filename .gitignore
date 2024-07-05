@@ -103,6 +103,8 @@ input_data/SST*
 INMET_*.CSV
 
 # others
+*.pyc
+vtx-mpas-meshes/vtxmpasmeshes/__pycache__/
 local_software/gcc-8.5.0/*
 local_software/libs/
 local_software/libs-gcc/

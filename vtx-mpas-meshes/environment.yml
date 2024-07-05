@@ -1,0 +1,38 @@
+name: vtx-mpas-tools
+channels:
+  - defaults
+dependencies:
+  - python[version='>=3.7']
+  - pyevtk
+  - sphinx_rtd_theme
+  - scikit-image
+  - hdf5
+  - netcdf4
+  - geometric_features[version='>=0.1.12']
+  - dask
+  - matplotlib-base
+  - inpoly
+  - shapely
+  - numpy
+  - scipy
+  - progressbar2
+  - sphinx
+  - pip
+  - cartopy
+  - pyamg
+  - python-igraph
+  - libnetcdf
+  - pyproj
+  - xarray
+  - mock
+  - ipykernel
+  - seaborn
+  - zarr
+  - notebook
+  - pandas
+  - geopy
+  - scikit-learn
+  - setuptools
+  - conda-forge::jigsaw[version='>=0.9.12']
+  - conda-forge::jigsawpy[version='>=0.2.1']
+  - conda-forge::mpas_tools

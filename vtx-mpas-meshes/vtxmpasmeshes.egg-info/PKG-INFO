@@ -1,0 +1,11 @@
+Metadata-Version: 2.1
+Name: vtxmpasmeshes
+Version: 0.0.1
+Summary: MPAS and WRF for python
+Author: Marta Gil Bardaji, Gerard Cavero Siscart et al.
+Author-email: marta.gil@vortexfdc.com
+Maintainer: Marta Gil Bardaji
+Maintainer-email: marta.gil@vortexfdc.com
+Classifier: Programming Language :: Python :: 3
+Classifier: Operating System :: OS Independent
+Requires-Python: >=3.7
