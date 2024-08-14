@@ -105,8 +105,11 @@ def start_cartopy_map_axis(zorder=1, proj='lonlat'):
         plot_crs = ccrs.Orthographic(central_longitude=-50.0, central_latitude=0.0, globe=None)
     else:
         plot_crs = ccrs.Robinson()
- 
-    ax = plt.axes(projection=plot_crs)  # projection type
+    
+    fig = plt.figure(figsize=(8, 8), )
+    ax = fig.add_subplot(projection=plot_crs, frameon=False)
+
+    #ax = plt.axes(projection=plot_crs)  # projection type
     
     add_cartopy_details(ax, zorder=zorder)
 
@@ -123,7 +126,7 @@ def add_cartopy_details(ax, zorder=1):
     #img = plt.imread("BlueMarble_2005_SAm_09_4096.png")
     img = plt.imread("0000.jpg")
     ax.imshow(img, transform=ccrs.PlateCarree())
-
+    
     # Reference gridlines
     #gl = ax.gridlines(draw_labels=True, alpha=0.5, linestyle='--',
     #                  zorder=zorder+2, linewidth=0.5)
@@ -355,14 +358,15 @@ def close_plot(fig=None, size_fig=None, pdf=None, outfile=None,
                force_show=False):
 
     if size_fig is None:
-        size_fig = [10, 8]
+        size_fig = [8, 8]
 
     if fig is None:
         fig = plt.gcf()
     fig.set_size_inches(size_fig)
+    
 
     if outfile is not None:
-        plt.savefig(outfile, dpi=800, transparent=True)
+        plt.savefig(outfile, dpi=800, transparent=True) 
 
     if pdf is not None:
         pdf.savefig(fig, dpi=800)
