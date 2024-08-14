@@ -100,6 +100,8 @@ def start_cartopy_map_axis(zorder=1, proj='lonlat'):
         plot_crs = ccrs.PlateCarree()
     elif proj=='mollweide':
         plot_crs = ccrs.Mollweide()
+    elif proj=='orthographic':
+        plot_crs = ccrs.Orthographic()
     else:
         plot_crs = ccrs.Robinson()
  
@@ -522,6 +524,8 @@ if __name__ == "__main__":
         proj='robinson'
     elif args.projection in ['moll', 'Moll', 'mollweide', 'Mollweide', 'mol', 'Mol']:
         proj='mollweide'
+    elif args.projection in ['Orthographic', 'Ortho', 'ortho', 'orthographic']:
+        proj='orthographic'
     else:
         proj='lonlat'
 
