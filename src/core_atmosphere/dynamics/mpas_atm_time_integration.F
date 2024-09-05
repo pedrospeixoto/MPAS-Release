@@ -37,6 +37,8 @@ module atm_time_integration
    
    use mpas_atm_iau  
 
+   use mpas_atm_art_tend_todynamics, only: get_artificial_tend
+
    !
    ! Abstract interface for routine used to communicate halos of fields
    ! in a named group
@@ -863,6 +865,13 @@ module atm_time_integration
       tend_rho_physics(:,:) = 0.0_RKIND
 #endif
 #endif
+
+      !
+      ! Artificial tendencies
+      !
+      call mpas_timer_start('get_artificial_tend')
+      call get_artificial_tend()
+      call mpas_timer_stop('get_artificial_tend')
 
       !
       ! IAU - Incremental Analysis Update

@@ -1,0 +1,28 @@
+<!-- ******************************* -->
+<!-- Artifical tendencies            -->
+<!-- ******************************* -->
+
+<var_struct name="tend_artificial" time_levs="1">
+
+    <var name="tend_rho_artificial" type="real" dimensions="nVertLevels nEdges Time" unit="kg m^{-3} s^{-1}"
+    description="Total horizontal momentum tendency from artificial tendencies"/>
+
+    <var name="tend_u_artificial" type="real" dimensions="nVertLevels nEdges Time" unit="m s^{-2}"
+    description="Horizontal velocity tendency from artificial tendencies"/>
+
+    <var name="tend_w_artificial" type="real" dimensions="nVertLevelsP1 nCells Time" units="m s^{-2}"
+        description="Vertical velocity tendency from artificial tendencies"/>
+
+    <var name="tend_theta_artificial" type="real" dimensions="nVertLevels nCells Time" units="kg K m^{-3} s^{-1}"
+        description="tendency of coupled potential temperature rho*theta_m/zz from dynamics and physics, updated each RK step"/>
+
+    <var name="tend_qv_artificial" type="real" dimensions="nVertLevels nCells Time" array_group="moist" units="kg m^{-3} s^{-1}"
+                description="Tendency of water vapor mass per unit volume divided by d(zeta)/dz"/>
+
+</var_struct>
+
+<!-- ****************************************** -->
+<!-- Begin includes from artificial tendencies  -->
+<!-- ****************************************** -->
+
+#include "Registry_vel_relax.xml"

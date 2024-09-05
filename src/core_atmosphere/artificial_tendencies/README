@@ -1,0 +1,19 @@
+This document summarizes the steps that are required to add a new artificial
+tendency to MPAS-Atmosphere.
+
+1) Define namelist options, dimensions, packages, and fields needed by 
+   the artificial tendency in a new Registry_<your_art_tend>.xml file. 
+   Add a #include statement for this new Registry file in 
+   Registry_artificial_tendencies.xml.
+
+2) Create a new module for the artificial tendency. By convention, the file
+   and module names are expected to begin with "mpas_".
+
+3) Add calls to the tendency's "setup", "compute", and "cleanup" routines in
+   the main artificial tendency driver. Note that some artificial tendencies
+   may not require all of these routines, in which case they can simply be omitted.
+
+4) Add the object file for the new artificial tendency module to the definition of 
+   ARTIFICIAL_TENDENCY_MODULES in the Makefile, and add a dependency on the new module 
+   for the artificial tendency driver. If the tendency has any other dependencies
+   within the artificial_tendencies/ subdirectory, specify those as well in the Makefile.

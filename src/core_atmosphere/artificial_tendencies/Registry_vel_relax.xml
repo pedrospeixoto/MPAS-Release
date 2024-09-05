@@ -1,0 +1,17 @@
+<!-- ****************************************** -->
+<!-- Horizontal velocity relaxation tendencies  -->
+<!-- ****************************************** -->
+
+<nml_record name="artificial_tendencies" in_defaults="false">
+
+    <nml_option name="config_velocity_relaxation" type="character" default_value="none" 
+    units="-"
+    description="Velocity relaxation tendency term. A value of 'none' disables it. A value of 'mean_init' uses the horizontal mean initial field velocity as the target mean horizontal velocity."
+    possible_values="'none' or 'mean_init'"/>
+
+    <nml_option name="config_velocity_relaxation_time_scale" type="real" default_value="3600" 
+    units="s"
+    description="Velocity relaxation time scale"
+    possible_values="Positive real values"/>
+
+</nml_record>

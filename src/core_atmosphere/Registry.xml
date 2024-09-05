@@ -3591,6 +3591,12 @@
 
 #include "diagnostics/Registry_diagnostics.xml"
 
+<!-- **************************************************************************************** -->
+<!-- ********************************* Artificial Tendencies ******************************** -->
+<!-- **************************************************************************************** -->
+
+#include "artificial_tendencies/Registry_artificial_tendencies.xml"
+
 #ifdef DO_PHYSICS
 #include "physics/Registry_noahmp.xml"
 #endif
