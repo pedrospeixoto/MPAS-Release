@@ -32,7 +32,16 @@ module mpas_dmpar
 #ifdef _MPI
 #ifndef NOMPIMOD
 #ifdef MPAS_USE_MPI_F08
-   use mpi_f08
+   use mpi_f08, only : MPI_Comm, MPI_Datatype
+   use mpi_f08, only : MPI_INTEGER, MPI_2INTEGER, MPI_REAL, MPI_2REAL, MPI_DOUBLE_PRECISION, &
+                       MPI_2DOUBLE_PRECISION, MPI_CHARACTER, MPI_INTEGER8
+   use mpi_f08, only : MPI_COMM_SELF, MPI_COMM_WORLD, MPI_INFO_NULL, MPI_THREAD_SINGLE, &
+                       MPI_THREAD_SERIALIZED, MPI_THREAD_FUNNELED, MPI_THREAD_MULTIPLE, MPI_STATUS_IGNORE
+   use mpi_f08, only : MPI_Query_thread, MPI_Comm_dup
+   use mpi_f08, only : MPI_Init_thread , MPI_Init, MPI_Comm_rank, MPI_Comm_size, MPI_Finalize, &
+                       MPI_Comm_free, MPI_Abort, MPI_Bcast, MPI_Allreduce, MPI_Scatterv, MPI_Recv, &
+                       MPI_Send, MPI_Request, MPI_Irecv, MPI_Isend, MPI_Wait, MPI_Wtime, MPI_Test
+   use mpi_f08, only : MPI_SUM, MPI_MIN, MPI_MAX, MPI_MINLOC, MPI_MAXLOC
 #else
    use mpi
 #endif
@@ -89,6 +98,7 @@ include 'mpif.h'
    public :: mpas_dmpar_bcast_ints
    public :: mpas_dmpar_bcast_real
    public :: mpas_dmpar_bcast_reals
+   public :: mpas_dmpar_bcast_real4s
    public :: mpas_dmpar_bcast_double
    public :: mpas_dmpar_bcast_doubles
    public :: mpas_dmpar_bcast_logical
@@ -541,6 +551,46 @@ include 'mpif.h'
 #endif
 
    end subroutine mpas_dmpar_bcast_reals!}}}
+
+!-----------------------------------------------------------------------
+!  routine mpas_dmpar_bcast_real4s
+!
+!> \brief MPAS dmpar broadcast R4KIND routine.
+!> \author Michael Duda, William Lipscomb
+!> \date 8 July 2024
+!> \details
+!>  This routine broadcasts an array of R4KIND reals to all processors in
+!>  the communicator. An optional argument specifies the source node; else
+!>  broadcast from IO_NODE.
+!
+!-----------------------------------------------------------------------
+   subroutine mpas_dmpar_bcast_real4s(dminfo, n, rarray, proc)!{{{
+
+      implicit none
+
+      type (dm_info), intent(in) :: dminfo !< Input: Domain information
+      integer, intent(in) :: n !< Input: Length of array
+      real (kind=R4KIND), dimension(n), intent(inout) :: rarray !< Input/Output: Array of reals to be broadcast
+      integer, intent(in), optional :: proc  !< optional argument indicating which processor to broadcast from
+
+#ifdef _MPI
+      integer :: mpi_ierr, source
+      integer :: threadNum
+
+      threadNum = mpas_threading_get_thread_num()
+
+      if ( threadNum == 0 ) then
+         if (present(proc)) then
+            source = proc
+         else
+            source = IO_NODE
+         endif
+
+         call MPI_Bcast(rarray, n, MPI_REAL, source, dminfo % comm, mpi_ierr)
+      end if
+#endif
+
+   end subroutine mpas_dmpar_bcast_real4s!}}}
 
 !-----------------------------------------------------------------------
 !  routine mpas_dmpar_bcast_double

@@ -1,5 +1,7 @@
 .SUFFIXES: .F .o
 
+.PHONY: physics_wrf physics_wrf_lib
+
 all: dummy physics_wrf
 
 dummy:
@@ -20,12 +22,14 @@ OBJS = \
 	module_cu_kfeta.o              \
 	module_mp_kessler.o            \
 	module_mp_thompson.o           \
+	module_mp_thompson_aerosols.o  \
 	module_mp_thompson_cldfra3.o   \
 	module_mp_wsm6.o               \
 	module_ra_cam.o                \
 	module_ra_cam_support.o        \
 	module_ra_rrtmg_lw.o           \
 	module_ra_rrtmg_sw.o           \
+	module_ra_rrtmg_sw_aerosols.o  \
 	module_ra_rrtmg_vinterp.o      \
 	module_sf_bem.o                \
 	module_sf_bep.o                \
@@ -34,9 +38,9 @@ OBJS = \
 	module_sf_mynn.o               \
 	module_sf_noahdrv.o            \
 	module_sf_noahlsm.o            \
-        module_sf_noahlsm_glacial_only.o \
-        module_sf_noah_seaice.o        \
-        module_sf_noah_seaice_drv.o    \
+	module_sf_noahlsm_glacial_only.o \
+	module_sf_noah_seaice.o        \
+	module_sf_noah_seaice_drv.o    \
 	module_sf_oml.o                \
 	module_sf_sfclay.o             \
 	module_sf_sfclayrev.o          \
@@ -50,6 +54,8 @@ OBJS = \
 
 
 physics_wrf: $(OBJS)
+
+physics_wrf_lib:
 	ar -ru ./../libphys.a $(OBJS)
 
 # DEPENDENCIES:
@@ -95,17 +101,17 @@ module_sf_noahdrv.o: \
 	module_sf_bep.o \
 	module_sf_bep_bem.o \
 	module_sf_noahlsm.o \
-        module_sf_noahlsm_glacial_only.o \
+	module_sf_noahlsm_glacial_only.o \
 	module_sf_urban.o
 
 module_sf_noahlsm_glacial_only.o: \
-        module_sf_noahlsm.o
+	module_sf_noahlsm.o
 
 module_sf_noah_seaice_drv.o: \
-        module_sf_noah_seaice.o
+	module_sf_noah_seaice.o
 
 module_sf_noah_seaice.o: \
-        module_sf_noahlsm.o
+	module_sf_noahlsm.o
 
 clean:
 	$(RM) *.f90 *.o *.mod
